@@ -1,379 +1,529 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Pool India</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                    colors: {
-                        brand: {
-                            green: '#1b8036',
-                            blue: '#1d3a70',
-                            orange: '#f3821a',
-                            light: '#f8fafc',
-                        }
-                    }
+                    colors: { brand: { green: '#1b8036', blue: '#1d3a70', orange: '#f3821a', light: '#f8fafc' } }
                 }
             }
         }
     </script>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: #f1f5f9; }
 
-        .bg-hero {
-            background: radial-gradient(circle at 20% 50%, rgba(27,128,54,0.15) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(243,130,26,0.12) 0%, transparent 40%),
-                        radial-gradient(circle at 60% 80%, rgba(29,58,112,0.1) 0%, transparent 40%),
-                        #0f1e3d;
+        /* Left panel gradient */
+        .left-panel {
+            background: linear-gradient(145deg, #1d3a70 0%, #0d2252 60%, #1b3a60 100%);
         }
 
-        .glass-card {
-            background: rgba(255,255,255,0.97);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.3);
+        /* Card */
+        .auth-card {
+            background: #ffffff;
+            border-radius: 2rem;
+            box-shadow: 0 20px 60px rgba(29,58,112,0.1);
+            border: 1.5px solid #e2e8f0;
         }
 
-        .input-field {
-            width: 100%;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 14px 16px 14px 48px;
-            font-size: 15px;
-            font-weight: 600;
-            color: #1d3a70;
-            outline: none;
-            transition: all 0.3s;
+        /* Input */
+        .field-wrap { position: relative; }
+        .field-icon {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; font-size: 15px; pointer-events: none;
         }
-        .input-field:focus { border-color: #1b8036; background: #fff; box-shadow: 0 0 0 3px rgba(27,128,54,0.12); }
-
-        .btn-primary {
-            width: 100%;
-            background: linear-gradient(135deg, #1b8036 0%, #157a2e 100%);
-            color: white;
-            font-weight: 800;
-            font-size: 17px;
-            padding: 16px;
-            border-radius: 14px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 8px 25px rgba(27,128,54,0.35);
-            letter-spacing: 0.3px;
+        .field-input {
+            width: 100%; background: #f8fafc; border: 2px solid #e2e8f0;
+            border-radius: 14px; padding: 14px 16px 14px 46px;
+            font-size: 15px; font-weight: 600; color: #1d3a70;
+            outline: none; transition: all 0.25s;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(27,128,54,0.45); }
-        .btn-primary:active { transform: translateY(0); }
+        .field-input:focus { border-color: #1b8036; background: #fff; box-shadow: 0 0 0 3px rgba(27,128,54,0.1); }
+        .field-input.error { border-color: #ef4444; background: #fff5f5; }
 
-        .tab-btn { transition: all 0.35s cubic-bezier(.4,0,.2,1); }
-        .tab-btn.active { color: #1d3a70; }
-        .tab-indicator { transition: transform 0.35s cubic-bezier(.4,0,.2,1); }
-
-        .otp-input {
-            width: 52px; height: 56px;
-            text-align: center;
-            font-size: 22px; font-weight: 800;
-            border: 2px solid #e2e8f0;
-            border-radius: 14px;
-            background: #f8fafc;
-            color: #1d3a70;
-            outline: none;
-            transition: all 0.3s;
+        /* OTP inputs */
+        .otp-box {
+            width: 48px; height: 52px; text-align: center;
+            font-size: 20px; font-weight: 800; border: 2px solid #e2e8f0;
+            border-radius: 12px; background: #f8fafc; color: #1d3a70;
+            outline: none; transition: all 0.2s;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        .otp-input:focus { border-color: #1b8036; background: #fff; box-shadow: 0 0 0 3px rgba(27,128,54,0.12); }
+        .otp-box:focus { border-color: #1b8036; background: #fff; box-shadow: 0 0 0 3px rgba(27,128,54,0.1); }
 
-        @keyframes slide-up { from { opacity:0; transform:translateY(30px);} to { opacity:1; transform:translateY(0);} }
-        .animate-slide-up { animation: slide-up 0.5s cubic-bezier(.4,0,.2,1) both; }
-
-        @keyframes float { 0%,100% {transform:translateY(0);} 50%{transform:translateY(-12px);} }
-        .float-anim { animation: float 5s ease-in-out infinite; }
-
-        .step-panel { display:none; }
-        .step-panel.active { display:block; }
-
-        .divider { display:flex; align-items:center; gap:12px; margin:20px 0; color:#94a3b8; font-size:13px; font-weight:600; }
-        .divider::before,.divider::after { content:''; flex:1; height:1px; background:#e2e8f0; }
-
-        .social-btn {
-            display:flex; align-items:center; justify-content:center; gap:10px;
-            width:100%; padding:13px; border:2px solid #e2e8f0; border-radius:14px;
-            font-weight:700; font-size:14px; color:#1d3a70; background:#fff;
-            cursor:pointer; transition:all 0.25s;
+        /* Buttons */
+        .btn-green {
+            width: 100%; background: linear-gradient(135deg, #1b8036, #157a2e);
+            color: #fff; font-weight: 800; font-size: 16px; padding: 15px;
+            border-radius: 14px; border: none; cursor: pointer;
+            transition: all 0.25s; box-shadow: 0 6px 20px rgba(27,128,54,0.3);
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        .social-btn:hover { border-color:#1b8036; background:#f0fdf4; }
+        .btn-green:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(27,128,54,0.4); }
+        .btn-green:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+        .btn-outline {
+            background: #fff; border: 2px solid #e2e8f0; border-radius: 14px;
+            font-weight: 700; font-size: 14px; padding: 12px 20px; cursor: pointer;
+            color: #475569; transition: all 0.2s; font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .btn-outline:hover { border-color: #1b8036; color: #1b8036; background: #f0fdf4; }
+
+        /* Mode tab */
+        .mode-tab {
+            flex: 1; padding: 10px; border-radius: 10px; font-weight: 700;
+            font-size: 13px; cursor: pointer; transition: all 0.25s; border: none;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .mode-tab.active { background: #1d3a70; color: #fff; box-shadow: 0 4px 12px rgba(29,58,112,0.25); }
+        .mode-tab:not(.active) { background: transparent; color: #94a3b8; }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+            padding: 14px 24px; border-radius: 14px; font-weight: 700; font-size: 14px;
+            display: flex; align-items: center; gap: 10px; z-index: 9999;
+            transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s;
+            opacity: 0; white-space: nowrap; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        #toast.success { background: #f0fdf4; color: #166534; border: 1.5px solid #bbf7d0; }
+        #toast.error   { background: #fff5f5; color: #991b1b; border: 1.5px solid #fecaca; }
+        #toast.info    { background: #eff6ff; color: #1e40af; border: 1.5px solid #bfdbfe; }
+
+        /* Panel transitions */
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+        .fade-up { animation: fadeUp 0.4s ease both; }
+
+        /* Loader spinner */
+        .spin { animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Left panel floating badges */
+        @keyframes floatY { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+        .float-badge { animation: floatY 5s ease-in-out infinite; }
+
+        /* Toggle password */
+        .toggle-pw { position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; color:#94a3b8; }
+        .toggle-pw:hover { color: #1b8036; }
     </style>
 </head>
-<body class="bg-hero min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+<body class="font-sans min-h-screen flex items-center justify-center p-4">
 
-    <!-- Decorative BG Elements -->
-    <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div class="float-anim absolute top-[10%] left-[8%] w-24 h-24 rounded-full bg-brand-green/10 blur-xl"></div>
-        <div class="float-anim absolute bottom-[15%] right-[10%] w-32 h-32 rounded-full bg-brand-orange/10 blur-xl" style="animation-delay:2s"></div>
-        <div class="float-anim absolute top-[40%] right-[5%] w-16 h-16 rounded-full bg-white/5 blur-lg" style="animation-delay:1s"></div>
-    </div>
+<!-- Toast -->
+<div id="toast"><i id="toast-icon" class="fa-solid fa-circle-check"></i> <span id="toast-msg"></span></div>
 
-    <!-- Left Panel (Desktop) -->
-    <div class="hidden lg:flex lg:w-1/2 flex-col justify-center pr-16 text-white animate-slide-up">
-        <a href="index.html" class="flex items-center gap-3 mb-12">
-            <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
-                <img src="images/logo.png" alt="Pool India" class="w-10 h-10 object-contain">
+<div class="w-full max-w-5xl flex rounded-[2.5rem] overflow-hidden shadow-2xl" style="min-height:580px;">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel hidden lg:flex lg:w-[45%] flex-col justify-between p-10 relative overflow-hidden">
+        <!-- BG dots -->
+        <div class="absolute inset-0 opacity-5" style="background-image:radial-gradient(circle,#fff 1px,transparent 1px);background-size:28px 28px;"></div>
+
+        <a href="index.html" class="flex items-center gap-3 relative z-10">
+            <div class="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center border border-white/20">
+                <img src="images/logo.png" alt="Pool India" class="w-9 h-9 object-contain">
             </div>
-            <span class="text-2xl font-black tracking-tight">POOL <span class="text-brand-green">India</span></span>
+            <span class="text-white font-black text-xl">POOL <span class="text-brand-green">India</span></span>
         </a>
-        <h1 class="text-5xl font-black leading-tight mb-6">
-            India's Smarter<br>
-            Way to <span class="text-brand-orange">Commute.</span>
-        </h1>
-        <p class="text-blue-200 text-lg font-medium leading-relaxed mb-10">
-            Join 5 lakh+ verified commuters saving money, reducing traffic & building a greener India — one shared ride at a time.
-        </p>
-        <div class="flex flex-col gap-4">
-            <div class="flex items-center gap-4 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-                <div class="w-12 h-12 bg-brand-green/20 rounded-full flex items-center justify-center text-brand-green text-xl shrink-0">
-                    <i class="fa-solid fa-shield-halved"></i>
+
+        <div class="relative z-10">
+            <h2 class="text-4xl font-black text-white leading-tight mb-4">
+                India's Smarter<br>Way to <span class="text-brand-orange">Commute.</span>
+            </h2>
+            <p class="text-blue-200 font-medium text-sm leading-relaxed mb-8">
+                Join 5L+ verified commuters saving money &amp; reducing traffic — one shared ride at a time.
+            </p>
+
+            <!-- Trust badges -->
+            <div class="space-y-3">
+                <div class="float-badge bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3 backdrop-blur-sm">
+                    <div class="w-10 h-10 bg-brand-green/25 rounded-xl flex items-center justify-center text-brand-green shrink-0">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <p class="text-white font-bold text-sm">100% Verified Profiles</p>
+                        <p class="text-blue-300 text-xs">Aadhaar + DL verified commuters</p>
+                    </div>
                 </div>
-                <div>
-                    <p class="font-bold text-sm">100% Verified Profiles</p>
-                    <p class="text-blue-300 text-xs">Aadhaar + PAN verified commuters</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-4 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-                <div class="w-12 h-12 bg-brand-orange/20 rounded-full flex items-center justify-center text-brand-orange text-xl shrink-0">
-                    <i class="fa-solid fa-leaf"></i>
-                </div>
-                <div>
-                    <p class="font-bold text-sm">Viksit Bharat Initiative</p>
-                    <p class="text-blue-300 text-xs">Reducing carbon footprint, one ride at a time</p>
+                <div class="float-badge bg-white/10 border border-white/15 rounded-2xl p-4 flex items-center gap-3 backdrop-blur-sm" style="animation-delay:1.5s">
+                    <div class="w-10 h-10 bg-brand-orange/25 rounded-xl flex items-center justify-center text-brand-orange shrink-0">
+                        <i class="fa-solid fa-leaf"></i>
+                    </div>
+                    <div>
+                        <p class="text-white font-bold text-sm">Viksit Bharat 🇮🇳</p>
+                        <p class="text-blue-300 text-xs">2,400+ tonnes CO₂ saved together</p>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <p class="text-blue-300/60 text-xs relative z-10">© 2026 Pool India. All rights reserved.</p>
     </div>
 
-    <!-- Right Panel: Auth Card -->
-    <div class="w-full max-w-md lg:w-1/2 lg:max-w-[440px]">
-        <div class="glass-card rounded-[2rem] shadow-2xl p-8 animate-slide-up" style="animation-delay:0.1s">
+    <!-- RIGHT PANEL -->
+    <div class="auth-card flex-1 p-8 sm:p-10 flex flex-col justify-center" style="border-radius:0 2rem 2rem 0; border-left:none;">
 
-            <!-- Mobile Logo -->
-            <div class="lg:hidden flex items-center gap-3 mb-6">
-                <img src="images/logo.png" alt="Pool India" class="w-10 h-10 object-contain">
-                <span class="text-xl font-black text-brand-blue">POOL <span class="text-brand-green">India</span></span>
-            </div>
-
-            <!-- Tabs -->
-            <div class="flex bg-gray-100 rounded-2xl p-1 mb-8 relative" id="auth-tabs">
-                <div class="tab-indicator absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-white rounded-xl shadow-sm" id="tab-slider"></div>
-                <button onclick="switchTab('login')" id="tab-login" class="tab-btn active flex-1 py-2.5 text-center font-bold text-sm text-brand-blue relative z-10">
-                    Sign In
-                </button>
-                <button onclick="switchTab('register')" id="tab-register" class="tab-btn flex-1 py-2.5 text-center font-bold text-sm text-gray-500 relative z-10">
-                    Register
-                </button>
-            </div>
-
-            <!-- LOGIN STEP 1: Phone -->
-            <div class="step-panel active" id="panel-login-phone">
-                <h2 class="text-2xl font-black text-brand-blue mb-1">Welcome Back! 👋</h2>
-                <p class="text-gray-500 text-sm mb-6">Enter your phone number to continue</p>
-
-                <div class="relative mb-4">
-                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-brand-green font-bold text-sm">🇮🇳 +91</div>
-                    <input type="tel" id="login-phone" maxlength="10" placeholder="98765 43210"
-                        class="input-field" style="padding-left:72px;" oninput="this.value=this.value.replace(/\D/g,'')">
-                </div>
-
-                <button class="btn-primary" onclick="sendOTP('login')">
-                    Send OTP <i class="fa-solid fa-arrow-right ml-2"></i>
-                </button>
-
-                <div class="divider">or continue with</div>
-                <button class="social-btn" onclick="googleSignIn()">
-                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                    Continue with Google
-                </button>
-            </div>
-
-            <!-- LOGIN STEP 2: OTP -->
-            <div class="step-panel" id="panel-login-otp">
-                <button onclick="backTo('panel-login-phone')" class="flex items-center gap-2 text-brand-blue font-bold text-sm mb-6 hover:text-brand-green transition">
-                    <i class="fa-solid fa-arrow-left"></i> Back
-                </button>
-                <h2 class="text-2xl font-black text-brand-blue mb-1">Check your SMS 📱</h2>
-                <p class="text-gray-500 text-sm mb-2">We sent a 6-digit OTP to</p>
-                <p class="font-black text-brand-blue text-base mb-6" id="login-phone-display">+91 98765 43210</p>
-
-                <div class="flex gap-2 justify-between mb-6" id="otp-inputs-login">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-login')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-login')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-login')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-login')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-login')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-login')">
-                </div>
-
-                <button class="btn-primary" onclick="verifyOTP()">
-                    Verify & Login <i class="fa-solid fa-check ml-2"></i>
-                </button>
-                <p class="text-center text-gray-400 text-sm mt-4">Didn't receive? <button onclick="sendOTP('login')" class="text-brand-green font-bold hover:underline">Resend OTP</button></p>
-            </div>
-
-            <!-- REGISTER STEP 1: Details -->
-            <div class="step-panel" id="panel-register-details">
-                <h2 class="text-2xl font-black text-brand-blue mb-1">Join Pool India 🚗</h2>
-                <p class="text-gray-500 text-sm mb-6">Create your verified rider profile</p>
-
-                <div class="space-y-4 mb-4">
-                    <div class="relative">
-                        <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" placeholder="Full Name" class="input-field">
-                    </div>
-                    <div class="relative">
-                        <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="email" placeholder="Email Address" class="input-field">
-                    </div>
-                    <div class="relative">
-                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-brand-green font-bold text-sm">🇮🇳 +91</div>
-                        <input type="tel" id="reg-phone" maxlength="10" placeholder="Mobile Number"
-                            class="input-field" style="padding-left:72px;" oninput="this.value=this.value.replace(/\D/g,'')">
-                    </div>
-                    <div class="flex gap-3">
-                        <label class="flex items-center gap-2 flex-1 p-3 rounded-xl border-2 border-gray-200 cursor-pointer hover:border-brand-green transition has-[:checked]:border-brand-green has-[:checked]:bg-green-50">
-                            <input type="radio" name="role" value="rider" class="accent-brand-green" checked>
-                            <span class="font-bold text-brand-blue text-sm"><i class="fa-solid fa-user mr-1 text-brand-green"></i> Rider</span>
-                        </label>
-                        <label class="flex items-center gap-2 flex-1 p-3 rounded-xl border-2 border-gray-200 cursor-pointer hover:border-brand-orange transition has-[:checked]:border-brand-orange has-[:checked]:bg-orange-50">
-                            <input type="radio" name="role" value="driver" class="accent-brand-orange">
-                            <span class="font-bold text-brand-blue text-sm"><i class="fa-solid fa-car mr-1 text-brand-orange"></i> Driver</span>
-                        </label>
-                    </div>
-                </div>
-
-                <p class="text-xs text-gray-400 mb-4 text-center">By registering, you agree to our <a href="#" class="text-brand-green font-bold hover:underline">Terms of Service</a> & <a href="#" class="text-brand-green font-bold hover:underline">Privacy Policy</a></p>
-
-                <button class="btn-primary" onclick="sendOTP('register')" style="background: linear-gradient(135deg, #1d3a70, #153060);">
-                    Send Verification OTP <i class="fa-solid fa-arrow-right ml-2"></i>
-                </button>
-            </div>
-
-            <!-- REGISTER STEP 2: OTP -->
-            <div class="step-panel" id="panel-register-otp">
-                <button onclick="backTo('panel-register-details')" class="flex items-center gap-2 text-brand-blue font-bold text-sm mb-6 hover:text-brand-green transition">
-                    <i class="fa-solid fa-arrow-left"></i> Back
-                </button>
-                <h2 class="text-2xl font-black text-brand-blue mb-1">Verify your number 📲</h2>
-                <p class="text-gray-500 text-sm mb-6">Enter the 6-digit OTP sent to your phone</p>
-
-                <div class="flex gap-2 justify-between mb-6" id="otp-inputs-register">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-register')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-register')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-register')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-register')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-register')">
-                    <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,'otp-inputs-register')">
-                </div>
-
-                <button class="btn-primary" onclick="completeRegistration()" style="background: linear-gradient(135deg, #1d3a70, #153060);">
-                    Create My Account <i class="fa-solid fa-check ml-2"></i>
-                </button>
-            </div>
-
+        <!-- Mobile logo -->
+        <div class="lg:hidden flex items-center gap-3 mb-6">
+            <img src="images/logo.png" class="w-8 h-8 object-contain" alt="">
+            <span class="font-black text-brand-blue text-lg">POOL <span class="text-brand-green">India</span></span>
         </div>
-        <p class="text-center text-blue-200/70 text-sm mt-6">
-            <a href="index.html" class="hover:text-white transition font-bold"><i class="fa-solid fa-arrow-left mr-1"></i> Back to Home</a>
-        </p>
+
+        <!-- Mode Tabs: Email / Phone -->
+        <div class="flex gap-1 bg-gray-100 rounded-xl p-1 mb-7">
+            <button class="mode-tab active" id="tab-email" onclick="setMode('email')">
+                <i class="fa-solid fa-envelope mr-1.5"></i>Email Login
+            </button>
+            <button class="mode-tab" id="tab-phone" onclick="setMode('phone')">
+                <i class="fa-solid fa-mobile-screen-button mr-1.5"></i>Phone OTP
+            </button>
+        </div>
+
+        <!-- ======= EMAIL LOGIN PANEL ======= -->
+        <div class="panel active fade-up" id="panel-email">
+            <h1 class="text-2xl font-black text-brand-blue mb-1">Welcome Back 👋</h1>
+            <p class="text-gray-400 text-sm font-semibold mb-6">Sign in to your Pool India account</p>
+
+            <div class="space-y-4 mb-6">
+                <div class="field-wrap">
+                    <i class="field-icon fa-solid fa-envelope"></i>
+                    <input id="email-input" type="email" placeholder="your@email.com" class="field-input"
+                        oninput="clearErr('email-input')">
+                </div>
+                <div class="field-wrap">
+                    <i class="field-icon fa-solid fa-lock"></i>
+                    <input id="pw-input" type="password" placeholder="Password" class="field-input" style="padding-right:46px"
+                        oninput="clearErr('pw-input')" onkeydown="if(event.key==='Enter')emailLogin()">
+                    <span class="toggle-pw" onclick="togglePw()"><i id="pw-eye" class="fa-solid fa-eye-slash"></i></span>
+                </div>
+            </div>
+
+            <div class="flex justify-end mb-5">
+                <button onclick="showToast('info','Password reset link will be sent to your email.')" class="text-brand-green text-sm font-bold hover:underline">
+                    Forgot Password?
+                </button>
+            </div>
+
+            <button id="login-btn" class="btn-green" onclick="emailLogin()">
+                Sign In <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+
+            <div class="text-center mt-5">
+                <span class="text-gray-400 text-sm font-semibold">Don't have an account? </span>
+                <a href="#" onclick="showToast('info','Please download the Pool India app to register.')" class="text-brand-green font-black text-sm hover:underline">Get the App</a>
+            </div>
+        </div>
+
+        <!-- ======= PHONE OTP — STEP 1: Enter Phone ======= -->
+        <div class="panel" id="panel-phone-enter">
+            <h1 class="text-2xl font-black text-brand-blue mb-1">Login with OTP 📱</h1>
+            <p class="text-gray-400 text-sm font-semibold mb-6">Enter your registered mobile number</p>
+
+            <div class="field-wrap mb-6">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-brand-blue font-bold text-sm">🇮🇳 +91</span>
+                <input id="phone-input" type="tel" maxlength="10" placeholder="98765 43210"
+                    class="field-input" style="padding-left:72px"
+                    oninput="this.value=this.value.replace(/\D/g,''); clearErr('phone-input')"
+                    onkeydown="if(event.key==='Enter')sendPhoneOtp()">
+            </div>
+
+            <button id="otp-send-btn" class="btn-green" onclick="sendPhoneOtp()">
+                Send OTP <i class="fa-solid fa-paper-plane ml-2"></i>
+            </button>
+        </div>
+
+        <!-- ======= PHONE OTP — STEP 2: Verify OTP ======= -->
+        <div class="panel" id="panel-phone-otp">
+            <button onclick="showPanel('panel-phone-enter')" class="flex items-center gap-2 text-brand-blue font-bold text-sm mb-5 hover:text-brand-green transition">
+                <i class="fa-solid fa-arrow-left"></i> Change Number
+            </button>
+            <h1 class="text-2xl font-black text-brand-blue mb-1">Enter OTP 🔐</h1>
+            <p class="text-gray-400 text-sm font-semibold mb-1">Sent to <span id="otp-phone-disp" class="text-brand-blue font-black"></span></p>
+            <p class="text-gray-400 text-xs font-semibold mb-6">Valid for 10 minutes</p>
+
+            <div class="flex justify-between gap-2 mb-6" id="otp-boxes">
+                <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
+                <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
+                <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
+                <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
+                <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
+                <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
+            </div>
+
+            <button id="otp-verify-btn" class="btn-green mb-3" onclick="verifyPhoneOtp()">
+                Verify & Login <i class="fa-solid fa-check ml-2"></i>
+            </button>
+
+            <p class="text-center text-sm">
+                <span class="text-gray-400 font-semibold" id="resend-wrap">
+                    Didn't receive?
+                    <button id="resend-btn" class="text-brand-green font-black hover:underline ml-1" onclick="resendOtp()">Resend OTP</button>
+                    <span id="resend-timer" class="hidden text-gray-400 font-bold ml-1"></span>
+                </span>
+            </p>
+        </div>
+
+        <!-- Back to home -->
+        <div class="mt-6 text-center">
+            <a href="index.html" class="text-gray-400 text-sm font-semibold hover:text-brand-blue transition">
+                <i class="fa-solid fa-arrow-left mr-1"></i> Back to Home
+            </a>
+        </div>
     </div>
+</div>
 
-    <script>
-        let currentLoginTab = 'login';
+<script>
+/* ─── CONFIG ─── */
+const API_BASE = 'https://api.greencar.ngo/api';
 
-        function switchTab(tab) {
-            currentLoginTab = tab;
-            const slider = document.getElementById('tab-slider');
-            const loginBtn = document.getElementById('tab-login');
-            const regBtn = document.getElementById('tab-register');
+/* ─── HELPERS ─── */
+function showPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const el = document.getElementById(id);
+    el.classList.add('active');
+    el.classList.remove('fade-up');
+    void el.offsetWidth;
+    el.classList.add('fade-up');
+}
 
-            if (tab === 'login') {
-                slider.style.transform = 'translateX(0)';
-                loginBtn.classList.add('active', 'text-brand-blue');
-                loginBtn.classList.remove('text-gray-500');
-                regBtn.classList.remove('active', 'text-brand-blue');
-                regBtn.classList.add('text-gray-500');
-                showPanel('panel-login-phone');
-            } else {
-                slider.style.transform = 'translateX(calc(100% + 8px))';
-                regBtn.classList.add('active', 'text-brand-blue');
-                regBtn.classList.remove('text-gray-500');
-                loginBtn.classList.remove('active', 'text-brand-blue');
-                loginBtn.classList.add('text-gray-500');
-                showPanel('panel-register-details');
-            }
-        }
+let toastTimer;
+function showToast(type, msg) {
+    const t = document.getElementById('toast');
+    const icons = { success:'fa-circle-check', error:'fa-circle-xmark', info:'fa-circle-info' };
+    t.className = `show ${type}`;
+    document.getElementById('toast-icon').className = `fa-solid ${icons[type]||icons.info}`;
+    document.getElementById('toast-msg').textContent = msg;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
 
-        function showPanel(id) {
-            document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
+function setLoading(btnId, loading, text='') {
+    const b = document.getElementById(btnId);
+    if (!b) return;
+    b.disabled = loading;
+    b.innerHTML = loading
+        ? '<i class="fa-solid fa-circle-notch spin mr-2"></i> Please wait...'
+        : text;
+}
 
-        function backTo(id) { showPanel(id); }
+function clearErr(id) {
+    document.getElementById(id)?.classList.remove('error');
+}
 
-        function sendOTP(type) {
-            if (type === 'login') {
-                const ph = document.getElementById('login-phone').value;
-                if (ph.length < 10) { alert('Please enter a valid 10-digit mobile number'); return; }
-                document.getElementById('login-phone-display').textContent = '+91 ' + ph;
-                showPanel('panel-login-otp');
-                document.querySelector('#otp-inputs-login .otp-input').focus();
-            } else {
-                const ph = document.getElementById('reg-phone').value;
-                if (ph.length < 10) { alert('Please enter a valid 10-digit mobile number'); return; }
-                showPanel('panel-register-otp');
-                document.querySelector('#otp-inputs-register .otp-input').focus();
-            }
-        }
+function togglePw() {
+    const inp = document.getElementById('pw-input');
+    const eye = document.getElementById('pw-eye');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        eye.className = 'fa-solid fa-eye';
+    } else {
+        inp.type = 'password';
+        eye.className = 'fa-solid fa-eye-slash';
+    }
+}
 
-        function otpNext(input, containerId) {
-            input.value = input.value.replace(/\D/g, '');
-            const inputs = document.querySelectorAll(`#${containerId} .otp-input`);
-            const idx = Array.from(inputs).indexOf(input);
-            if (input.value && idx < inputs.length - 1) inputs[idx + 1].focus();
-        }
+/* ─── MODE SWITCH ─── */
+let currentMode = 'email';
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('tab-email').classList.toggle('active', mode === 'email');
+    document.getElementById('tab-phone').classList.toggle('active', mode === 'phone');
+    showPanel(mode === 'email' ? 'panel-email' : 'panel-phone-enter');
+}
 
-        function verifyOTP() {
-            // Simulate OTP verification and redirect to profile or index
-            const btn = event.target;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
-            btn.disabled = true;
-            setTimeout(() => {
-                window.location.href = 'profile.html';
-            }, 1500);
-        }
+/* ─── EMAIL LOGIN ─── */
+async function emailLogin() {
+    const email = document.getElementById('email-input').value.trim();
+    const password = document.getElementById('pw-input').value.trim();
 
-        function completeRegistration() {
-            const btn = event.target;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creating Account...';
-            btn.disabled = true;
-            setTimeout(() => {
-                window.location.href = 'profile.html';
-            }, 1800);
-        }
+    if (!email) {
+        document.getElementById('email-input').classList.add('error');
+        showToast('error', 'Please enter your email address.');
+        return;
+    }
+    if (!password) {
+        document.getElementById('pw-input').classList.add('error');
+        showToast('error', 'Please enter your password.');
+        return;
+    }
 
-        function googleSignIn() {
-            alert('Google Sign-In integration coming soon!');
-        }
+    setLoading('login-btn', true);
 
-        // Keyboard nav for OTP
-        document.addEventListener('keydown', function(e) {
-            if (e.target.classList.contains('otp-input') && e.key === 'Backspace' && !e.target.value) {
-                const inputs = document.querySelectorAll(`#${e.target.closest('[id^="otp-inputs"]').id} .otp-input`);
-                const idx = Array.from(inputs).indexOf(e.target);
-                if (idx > 0) inputs[idx - 1].focus();
-            }
+    const payload = { spName: 'CORP_Login', payload: JSON.stringify({ email, Password: password }) };
+
+    try {
+        const res = await fetch(`${API_BASE}/Ride/GetDataFromServer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-    </script>
+        const data = await res.json();
+
+        if (data.status === 1 && data.data?.dataset?.table?.length > 0) {
+            const userdetails = JSON.parse(data.data.dataset.table1[0].userdetails)[0];
+            finishLogin(userdetails);
+        } else {
+            showToast('error', 'Invalid email or password. Please try again.');
+            document.getElementById('email-input').classList.add('error');
+            document.getElementById('pw-input').classList.add('error');
+            setLoading('login-btn', false, 'Sign In <i class="fa-solid fa-arrow-right ml-2"></i>');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('error', 'Network error. Please check your connection.');
+        setLoading('login-btn', false, 'Sign In <i class="fa-solid fa-arrow-right ml-2"></i>');
+    }
+}
+
+/* ─── PHONE OTP ─── */
+let serverPhoneOtp = '';
+let resendInterval;
+
+async function sendPhoneOtp() {
+    const phone = document.getElementById('phone-input').value.trim();
+    if (phone.length !== 10) {
+        document.getElementById('phone-input').classList.add('error');
+        showToast('error', 'Enter a valid 10-digit mobile number.');
+        return;
+    }
+
+    setLoading('otp-send-btn', true);
+
+    try {
+        const res = await fetch(`${API_BASE}/Ride/SendOTP?MobileNo=${phone}`);
+        const data = await res.json();
+
+        if (data.status === 'ok') {
+            serverPhoneOtp = data.requestid.slice(8, 14);
+            document.getElementById('otp-phone-disp').textContent = '+91 ' + phone;
+            showPanel('panel-phone-otp');
+            startResendTimer();
+            document.querySelector('#otp-boxes .otp-box').focus();
+            showToast('success', 'OTP sent to +91 ' + phone);
+        } else {
+            showToast('error', 'Failed to send OTP. Please try again.');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('error', 'Network error. Please try again.');
+    } finally {
+        setLoading('otp-send-btn', false, 'Send OTP <i class="fa-solid fa-paper-plane ml-2"></i>');
+    }
+}
+
+function getOtpValue() {
+    return Array.from(document.querySelectorAll('#otp-boxes .otp-box')).map(i => i.value).join('');
+}
+
+async function verifyPhoneOtp() {
+    const otp = getOtpValue();
+    if (otp.length < 6) { showToast('error', 'Enter the complete 6-digit OTP.'); return; }
+
+    setLoading('otp-verify-btn', true);
+
+    // Verify against server OTP
+    if (otp === serverPhoneOtp) {
+        // Now login with phone — post login via phone OTP flow
+        const phone = document.getElementById('phone-input').value.trim();
+        const payload = { spName: 'CORP_Login_Phone', payload: JSON.stringify({ mobile_No: phone }) };
+        try {
+            const res = await fetch(`${API_BASE}/Ride/GetDataFromServer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 1 && data.data?.dataset?.table?.length > 0) {
+                const userdetails = JSON.parse(data.data.dataset.table1[0].userdetails)[0];
+                finishLogin(userdetails);
+            } else {
+                // OTP matched but no account found — still log in with basic info
+                showToast('success', 'OTP verified! Logging you in...');
+                setTimeout(() => finishLogin({ name: 'User', mobile_No: phone }), 800);
+            }
+        } catch {
+            showToast('success', 'OTP verified! Logging you in...');
+            setTimeout(() => finishLogin({ name: 'User', mobile_No: phone }), 800);
+        }
+    } else {
+        showToast('error', 'Incorrect OTP. Please try again.');
+        document.querySelectorAll('#otp-boxes .otp-box').forEach(i => { i.value = ''; i.classList.add('border-red-400'); });
+        setTimeout(() => document.querySelectorAll('#otp-boxes .otp-box').forEach(i => i.classList.remove('border-red-400')), 1200);
+        setLoading('otp-verify-btn', false, 'Verify & Login <i class="fa-solid fa-check ml-2"></i>');
+    }
+}
+
+function resendOtp() {
+    clearInterval(resendInterval);
+    document.querySelectorAll('#otp-boxes .otp-box').forEach(i => i.value = '');
+    sendPhoneOtp();
+}
+
+function startResendTimer() {
+    let secs = 30;
+    const btn = document.getElementById('resend-btn');
+    const timer = document.getElementById('resend-timer');
+    btn.classList.add('hidden');
+    timer.classList.remove('hidden');
+    timer.textContent = `Resend in ${secs}s`;
+    clearInterval(resendInterval);
+    resendInterval = setInterval(() => {
+        secs--;
+        if (secs <= 0) {
+            clearInterval(resendInterval);
+            timer.classList.add('hidden');
+            btn.classList.remove('hidden');
+        } else {
+            timer.textContent = `Resend in ${secs}s`;
+        }
+    }, 1000);
+}
+
+/* ─── OTP BOX NAVIGATION ─── */
+function otpNext(inp) {
+    inp.value = inp.value.replace(/\D/g, '');
+    const boxes = [...document.querySelectorAll('#otp-boxes .otp-box')];
+    const idx = boxes.indexOf(inp);
+    if (inp.value && idx < boxes.length - 1) boxes[idx + 1].focus();
+    if (idx === boxes.length - 1 && inp.value) verifyPhoneOtp();
+}
+function otpBack(e, inp) {
+    if (e.key === 'Backspace' && !inp.value) {
+        const boxes = [...document.querySelectorAll('#otp-boxes .otp-box')];
+        const idx = boxes.indexOf(inp);
+        if (idx > 0) boxes[idx - 1].focus();
+    }
+}
+
+/* ─── FINISH LOGIN ─── */
+function finishLogin(user) {
+    localStorage.setItem('UserProfile', JSON.stringify(user));
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('loggedInUserName', user.name || 'User');
+    showToast('success', `Welcome back, ${user.name || 'User'}! 🎉`);
+    setTimeout(() => {
+        const redirect = new URLSearchParams(window.location.search).get('redirect') || 'rides.html';
+        window.location.href = redirect;
+    }, 1000);
+}
+
+/* ─── AUTO-LOGIN CHECK ─── */
+if (localStorage.getItem('isLoggedIn') === 'true') {
+    window.location.href = 'profile.html';
+}
+</script>
 </body>
 </html>

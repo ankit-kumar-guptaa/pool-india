@@ -136,18 +136,28 @@
         }
 
         /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #1b8036; border-radius: 10px; }
 
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
+        /* Animated hero headline */
+        @keyframes heroTextIn {
+            from { opacity:0; transform: translateY(20px); }
+            to   { opacity:1; transform: translateY(0); }
         }
+        @keyframes heroTextOut {
+            from { opacity:1; transform: translateY(0); }
+            to   { opacity:0; transform: translateY(-20px); }
+        }
+        .hero-text-in  { animation: heroTextIn  0.55s cubic-bezier(.4,0,.2,1) both; }
+        .hero-text-out { animation: heroTextOut 0.45s cubic-bezier(.4,0,.2,1) both; }
 
-        ::-webkit-scrollbar-thumb {
-            background: #1b8036;
-            border-radius: 10px;
-        }
+        /* Viksit Bharat stats */
+        .vb-stat { background:rgba(255,255,255,0.12); backdrop-filter:blur(10px);
+            border:1px solid rgba(255,255,255,0.2); border-radius:1.2rem; padding:20px 16px; text-align:center; }
+        .vb-card { background:#fff; border-radius:1.5rem; padding:20px; box-shadow:0 4px 24px rgba(0,0,0,0.06); }
+        @keyframes countUp { from { opacity:0; transform:scale(.8); } to { opacity:1; transform:scale(1); } }
+        .count-anim { animation: countUp 0.6s ease both; }
     </style>
 </head>
 
@@ -166,13 +176,13 @@
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex space-x-8 items-center" data-aos="fade-left">
                     <a href="#home" class="text-brand-blue hover:text-brand-green font-bold transition">Book a Ride</a>
-                    <a href="#services"
-                        class="text-gray-600 hover:text-brand-green font-semibold transition">Services</a>
-                    <a href="#mission" class="text-gray-600 hover:text-brand-green font-semibold transition">Viksit
-                        Bharat</a>
+                    <a href="#services" class="text-gray-600 hover:text-brand-green font-semibold transition">Services</a>
+                    <a href="#mission" class="text-gray-600 hover:text-brand-green font-semibold transition">Viksit Bharat</a>
                     <a href="#contact" class="text-gray-600 hover:text-brand-green font-semibold transition">Support</a>
-                    <a href="#download"
-                        class="bg-brand-blue text-white px-6 py-2.5 rounded-full font-bold hover:bg-brand-orange transition-all shadow-md transform hover:-translate-y-0.5">
+                    <a href="login.html" class="border-2 border-brand-blue text-brand-blue px-5 py-2 rounded-full font-bold hover:bg-brand-blue hover:text-white transition-all">
+                        <i class="fa-solid fa-user mr-1"></i> Login
+                    </a>
+                    <a href="#download" class="bg-brand-blue text-white px-6 py-2.5 rounded-full font-bold hover:bg-brand-orange transition-all shadow-md transform hover:-translate-y-0.5">
                         Download App
                     </a>
                 </div>
@@ -189,12 +199,13 @@
 
                 <!-- Left Content: Dynamic Booking Widget -->
                 <div class="lg:w-[45%] w-full" data-aos="fade-right" data-aos-duration="1000">
-                    <h1 class="text-4xl lg:text-5xl font-black leading-tight mb-4 tracking-tight text-brand-blue">
-                        Your Commute, <br>
-                        <span class="text-brand-green">Your Choice.</span>
-                    </h1>
-                    <p class="text-gray-600 mb-8 font-medium">Search for daily rides, intercity cabs, or shuttles.
-                        Verified peers, cheaper fares.</p>
+                    <div id="hero-headline" class="mb-4">
+                        <h1 class="text-4xl lg:text-5xl font-black leading-tight tracking-tight text-brand-blue">
+                            <span id="hero-line1">Your Commute,</span><br>
+                            <span class="text-brand-green" id="hero-line2">Your Choice.</span>
+                        </h1>
+                    </div>
+                    <p class="text-gray-600 mb-8 font-medium" id="hero-sub">Search for daily rides, intercity cabs, or shuttles. Verified peers, cheaper fares.</p>
 
                     <!-- Interactive Widget Box -->
                     <div class="bg-white rounded-[2rem] shadow-widget p-6 border border-gray-100">
@@ -220,7 +231,7 @@
                         </div>
 
                         <!-- Form Area -->
-                        <form onsubmit="event.preventDefault(); alert('Redirecting to Pool India App...');"
+                        <form id="search-form" onsubmit="handleSearch(event)"
                             class="space-y-4 relative">
                             <!-- Vertical Line decoration for From/To -->
                             <div class="absolute left-6 top-8 bottom-32 w-0.5 bg-gray-200 z-0 hidden sm:block"></div>
@@ -489,27 +500,72 @@
         </div>
     </section>
 
-    <!-- ========== LIGHT PARALLAX MISSION (Viksit Bharat) ========== -->
-    <section id="mission" class="relative py-32 flex items-center justify-center overflow-hidden">
-        <div class="absolute inset-0 z-0">
-            <img src="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?q=80&w=2070&auto=format&fit=crop"
-                class="w-full h-full object-cover fixed opacity-30">
-        </div>
-        <div class="absolute inset-0 bg-white/80 backdrop-blur-sm z-10"></div>
+    <!-- ========== VIKSIT BHARAT SECTION (Rich) ========== -->
+    <section id="mission" class="relative py-24 overflow-hidden" style="background:linear-gradient(135deg,#0f1e3d 0%,#1d3a70 60%,#0d2252 100%)">
+        <!-- BG pattern -->
+        <div class="absolute inset-0 opacity-5" style="background-image:linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px);background-size:40px 40px;"></div>
 
-        <div class="max-w-4xl mx-auto px-4 relative z-20 text-center" data-aos="zoom-in">
-            <div class="inline-block p-4 rounded-full bg-white mb-8 shadow-md border border-gray-100">
-                <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png"
-                    alt="India Flag" class="w-12 h-8 object-cover rounded">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <!-- Header -->
+            <div class="text-center mb-14" data-aos="fade-up">
+                <div class="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-2.5 mb-6">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/120px-Flag_of_India.svg.png" class="w-8 h-5 object-cover rounded" alt="India">
+                    <span class="text-white font-black text-sm uppercase tracking-widest">Viksit Bharat Initiative</span>
+                </div>
+                <h2 class="text-4xl md:text-6xl font-black text-white mb-5 tracking-tight">
+                    Driving India <span class="text-brand-orange">Forward.</span>
+                </h2>
+                <p class="text-blue-200 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
+                    Pool India is not just an app — it's a national movement. Every shared ride is a step toward decongested cities, cleaner air, and a stronger economy.
+                </p>
             </div>
-            <h2 class="text-5xl md:text-7xl font-black mb-6 text-brand-blue tracking-tight">
-                For a <span class="text-brand-orange">Viksit Bharat</span>
-            </h2>
-            <p class="text-xl text-gray-700 mb-10 leading-relaxed font-bold">
-                Pool India is not just an app. It's a movement.<br class="hidden md:block" />
-                By sharing rides, you are actively decongesting our cities, cutting carbon emissions, and paving the way
-                for a cleaner, smarter India.
-            </p>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14" data-aos="fade-up" data-aos-delay="100">
+                <div class="vb-stat">
+                    <div class="text-3xl font-black text-brand-green mb-1">2,400+</div>
+                    <div class="text-xs font-bold text-blue-300 uppercase tracking-wider">Tonnes CO₂ Saved</div>
+                </div>
+                <div class="vb-stat">
+                    <div class="text-3xl font-black text-brand-orange mb-1">5L+</div>
+                    <div class="text-xs font-bold text-blue-300 uppercase tracking-wider">Active Poolers</div>
+                </div>
+                <div class="vb-stat">
+                    <div class="text-3xl font-black text-white mb-1">₹5Cr+</div>
+                    <div class="text-xs font-bold text-blue-300 uppercase tracking-wider">Commuters' Savings</div>
+                </div>
+                <div class="vb-stat">
+                    <div class="text-3xl font-black text-brand-green mb-1">100+</div>
+                    <div class="text-xs font-bold text-blue-300 uppercase tracking-wider">Cities Live</div>
+                </div>
+            </div>
+
+            <!-- Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="150">
+                <div class="vb-card">
+                    <div class="w-12 h-12 bg-green-100 text-brand-green rounded-2xl flex items-center justify-center text-2xl mb-4"><i class="fa-solid fa-leaf"></i></div>
+                    <h3 class="font-black text-brand-blue text-lg mb-2">Greener Cities</h3>
+                    <p class="text-gray-500 text-sm font-medium leading-relaxed">Carpooling reduces individual vehicle emissions by up to 75%. Pool India commuters have collectively saved 2,400+ tonnes of CO₂ — equivalent to planting 1.1 lakh trees.</p>
+                </div>
+                <div class="vb-card">
+                    <div class="w-12 h-12 bg-orange-100 text-brand-orange rounded-2xl flex items-center justify-center text-2xl mb-4"><i class="fa-solid fa-road"></i></div>
+                    <h3 class="font-black text-brand-blue text-lg mb-2">Less Traffic</h3>
+                    <p class="text-gray-500 text-sm font-medium leading-relaxed">Every 4-seater carpool removes 3 cars from the road. Pool India's network saves 18 lakh+ vehicle-km monthly, directly reducing peak-hour congestion in metro cities.</p>
+                </div>
+                <div class="vb-card">
+                    <div class="w-12 h-12 bg-blue-100 text-brand-blue rounded-2xl flex items-center justify-center text-2xl mb-4"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                    <h3 class="font-black text-brand-blue text-lg mb-2">Economic Power</h3>
+                    <p class="text-gray-500 text-sm font-medium leading-relaxed">Poolers save ₹3,000–₹6,000/month on commute costs. That's extra money in the hands of India's working population — fuelling consumption and local growth.</p>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="text-center mt-12" data-aos="zoom-in">
+                <p class="text-blue-200 font-semibold mb-4">Join the movement. Every ride counts.</p>
+                <a href="rides.html" class="inline-flex items-center gap-2 bg-brand-orange text-white font-black px-8 py-4 rounded-full hover:bg-orange-600 transition-all shadow-lg text-base">
+                    <i class="fa-solid fa-car-side"></i> Start Pooling Today
+                </a>
+            </div>
         </div>
     </section>
 
@@ -717,6 +773,43 @@
 
     <!-- Scripts -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // ---- HERO ANIMATED HEADLINES ----
+        const heroSlides = [
+            { line1: 'Your Commute,', line2: 'Your Choice.', sub: 'Search daily rides, intercity cabs or shuttles. Verified peers, cheaper fares.' },
+            { line1: 'Save Money,', line2: 'Save the Planet.', sub: 'Split fuel costs with verified co-passengers. Cut your carbon footprint every day.' },
+            { line1: 'For a', line2: 'Viksit Bharat 🇮🇳', sub: 'Pool India is a movement — decongesting cities, cutting emissions, building a smarter India.' },
+            { line1: 'Safe Rides,', line2: 'Verified Peers.', sub: 'Aadhaar & DL verified profiles. 100% identity-checked community.' },
+        ];
+        let heroIdx = 0;
+        function cycleHero() {
+            const l1 = document.getElementById('hero-line1');
+            const l2 = document.getElementById('hero-line2');
+            const sub = document.getElementById('hero-sub');
+            [l1, l2, sub].forEach(el => { el.classList.remove('hero-text-in'); el.classList.add('hero-text-out'); });
+            setTimeout(() => {
+                heroIdx = (heroIdx + 1) % heroSlides.length;
+                const s = heroSlides[heroIdx];
+                l1.textContent = s.line1;
+                l2.textContent = s.line2;
+                sub.textContent = s.sub;
+                [l1, l2, sub].forEach(el => { el.classList.remove('hero-text-out'); el.classList.add('hero-text-in'); });
+            }, 450);
+        }
+        setInterval(cycleHero, 4000);
+
+        // ---- SEARCH FORM ----
+        function handleSearch(e) {
+            e.preventDefault();
+            const form = document.getElementById('search-form');
+            const from = form.querySelector('input[type=text]:first-of-type')?.value || '';
+            const to   = form.querySelectorAll('input[type=text]')[1]?.value || '';
+            const date = form.querySelector('input[type=date]')?.value || '';
+            const seats= form.querySelector('input[type=number]')?.value || 1;
+            const params = new URLSearchParams({ from, to, date, seats });
+            window.location.href = 'rides.html?' + params.toString();
+        }
+    </script>
     <script>
         // Initialize AOS Animation
         AOS.init({
