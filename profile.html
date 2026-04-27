@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Pool India</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>tailwind.config={theme:{extend:{fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']},colors:{brand:{green:'#1b8036',blue:'#1d3a70',orange:'#f3821a'}}}}}</script>
+    <style>
+        body{background:#f1f5f9;}
+        .glass-nav{background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-bottom:1px solid #e2e8f0;}
+        .card{background:#fff;border-radius:1.5rem;border:1.5px solid #e2e8f0;}
+        .tab-btn{padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;cursor:pointer;transition:all .25s;white-space:nowrap;}
+        .tab-btn.active{background:#1d3a70;color:#fff;box-shadow:0 4px 14px rgba(29,58,112,.3);}
+        .tab-btn:not(.active){color:#64748b;background:transparent;}
+        .tab-btn:not(.active):hover{background:#f1f5f9;}
+        .status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+        .pill-green{background:#dcfce7;color:#166534;}
+        .pill-orange{background:#ffedd5;color:#9a3412;}
+        .pill-blue{background:#dbeafe;color:#1e40af;}
+        .pill-red{background:#fee2e2;color:#991b1b;}
+        .ride-item{background:#f8fafc;border-radius:1.2rem;padding:16px;border:1.5px solid #e2e8f0;transition:all .2s;cursor:pointer;}
+        .ride-item:hover{border-color:#1b8036;background:#f0fdf4;}
+        .avatar{width:44px;height:44px;border-radius:14px;object-fit:cover;}
+        .stat-box{text-align:center;flex:1;}
+        .verify-badge{background:#dcfce7;border:1.5px solid #bbf7d0;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+        .verify-badge.pending{background:#fff7ed;border-color:#fed7aa;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+        .fade-up{animation:fadeUp .4s ease both;}
+        .tab-panel{display:none;}
+        .tab-panel.active{display:block;}
+        .rating-stars{color:#f3821a;font-size:12px;}
+        .profile-hero{background:linear-gradient(135deg,#1d3a70 0%,#0d2252 100%);border-radius:0 0 2rem 2rem;}
+    </style>
+</head>
+<body class="font-sans text-gray-800">
+
+<nav class="glass-nav fixed w-full z-50 shadow-sm">
+    <div class="max-w-3xl mx-auto px-4 flex justify-between h-16 items-center">
+        <a href="index.html" class="flex items-center gap-2 text-brand-blue font-bold hover:text-brand-green transition">
+            <img src="images/logo.png" class="w-8 h-8 object-contain" alt=""> <span class="font-black">POOL <span class="text-brand-green">India</span></span>
+        </a>
+        <button class="text-gray-500 hover:text-red-500 font-bold text-sm transition" onclick="if(confirm('Logout?')) window.location.href='login.html'">
+            <i class="fa-solid fa-right-from-bracket mr-1"></i> Logout
+        </button>
+    </div>
+</nav>
+
+<div class="pt-16">
+    <!-- Profile Hero -->
+    <div class="profile-hero px-4 pt-8 pb-16">
+        <div class="max-w-3xl mx-auto flex items-center gap-5">
+            <div class="relative shrink-0">
+                <img src="https://randomuser.me/api/portraits/men/75.jpg" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20" alt="You">
+                <button class="absolute -bottom-1 -right-1 w-7 h-7 bg-brand-orange rounded-full flex items-center justify-center border-2 border-white">
+                    <i class="fa-solid fa-camera text-white text-[9px]"></i>
+                </button>
+            </div>
+            <div class="flex-1">
+                <h1 class="text-white font-black text-2xl">Kamalesh Singh</h1>
+                <p class="text-blue-300 text-sm font-semibold">+91 98765 43210 · Noida, UP</p>
+                <div class="flex items-center gap-2 mt-2 flex-wrap">
+                    <span class="status-pill pill-green" style="font-size:10px;">✓ Aadhaar Verified</span>
+                    <span class="status-pill" style="background:#fff3cd;color:#856404;font-size:10px;">⚠ DL Pending</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="rating-stars text-lg">★★★★☆</div>
+                <p class="text-white font-black text-lg leading-none mt-0.5">4.7</p>
+                <p class="text-blue-300 text-xs font-semibold">42 rides</p>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="max-w-3xl mx-auto mt-6 bg-white/10 backdrop-blur-md rounded-2xl p-4 flex gap-2 border border-white/10">
+            <div class="stat-box border-r border-white/10 pr-2">
+                <p class="text-2xl font-black text-white">42</p>
+                <p class="text-blue-300 text-xs font-semibold">Total Rides</p>
+            </div>
+            <div class="stat-box border-r border-white/10 pr-2">
+                <p class="text-2xl font-black text-brand-green">₹3,840</p>
+                <p class="text-blue-300 text-xs font-semibold">Saved</p>
+            </div>
+            <div class="stat-box border-r border-white/10 pr-2">
+                <p class="text-2xl font-black text-brand-orange">12</p>
+                <p class="text-blue-300 text-xs font-semibold">Connections</p>
+            </div>
+            <div class="stat-box">
+                <p class="text-2xl font-black text-white">8kg</p>
+                <p class="text-blue-300 text-xs font-semibold">CO₂ Saved</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="max-w-3xl mx-auto px-4 -mt-6">
+        <div class="card p-1.5 flex gap-1 overflow-x-auto mb-5" style="border-radius:999px;">
+            <button class="tab-btn active" id="tb-rides" onclick="switchTab('rides')"><i class="fa-solid fa-car-side mr-1.5"></i>My Rides</button>
+            <button class="tab-btn" id="tb-connections" onclick="switchTab('connections')"><i class="fa-solid fa-handshake mr-1.5"></i>Connections</button>
+            <button class="tab-btn" id="tb-responses" onclick="switchTab('responses')"><i class="fa-solid fa-reply mr-1.5"></i>Responses</button>
+            <button class="tab-btn" id="tb-profile" onclick="switchTab('profile')"><i class="fa-solid fa-user mr-1.5"></i>Profile</button>
+        </div>
+
+        <!-- MY RIDES TAB -->
+        <div class="tab-panel active fade-up" id="panel-rides">
+            <div class="flex justify-between items-center mb-4">
+                <p class="font-black text-brand-blue">My Rides</p>
+                <button class="bg-brand-green text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-green-700 transition">
+                    + Post a Ride
+                </button>
+            </div>
+            <div class="space-y-3">
+                <!-- Upcoming -->
+                <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Upcoming</p>
+                <div class="ride-item" onclick="window.location.href='ride-detail.html'">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="status-pill pill-green">● Confirmed</span>
+                            <p class="font-black text-brand-blue mt-1">Sector 3 → Connaught Place</p>
+                            <p class="text-xs text-gray-500 font-semibold mt-0.5">Tomorrow · 07:30 AM · 1 Seat</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xl font-black text-brand-green">₹120</p>
+                            <p class="text-xs text-gray-400">with Arjun S.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="flex-1 py-2 rounded-xl bg-brand-blue/10 text-brand-blue text-xs font-bold hover:bg-brand-blue hover:text-white transition"><i class="fa-solid fa-comment-dots mr-1"></i>Chat</button>
+                        <button class="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold hover:bg-red-50 hover:text-red-500 transition"><i class="fa-solid fa-xmark mr-1"></i>Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Past -->
+                <p class="text-xs font-black text-gray-400 uppercase tracking-widest mt-5">Past Rides</p>
+                <div class="ride-item">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="status-pill pill-blue">✓ Completed</span>
+                            <p class="font-black text-brand-blue mt-1">Sector 18 → Saket, Delhi</p>
+                            <p class="text-xs text-gray-500 font-semibold mt-0.5">25 Apr · 08:00 AM · 1 Seat</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xl font-black text-gray-400">₹95</p>
+                            <p class="text-xs text-gray-400">with Priya M.</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button class="flex-1 py-2 rounded-xl bg-brand-orange/10 text-brand-orange text-xs font-bold"><i class="fa-solid fa-star mr-1"></i>Rate Ride</button>
+                        <button class="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold"><i class="fa-solid fa-rotate-right mr-1"></i>Rebook</button>
+                    </div>
+                </div>
+                <div class="ride-item">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="status-pill pill-blue">✓ Completed</span>
+                            <p class="font-black text-brand-blue mt-1">Noida City Centre → CP</p>
+                            <p class="text-xs text-gray-500 font-semibold mt-0.5">20 Apr · 09:00 AM · 1 Seat</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xl font-black text-gray-400">₹110</p>
+                            <p class="text-xs text-gray-400">with Rahul V.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="ride-item">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="status-pill pill-red">✗ Cancelled</span>
+                            <p class="font-black text-brand-blue mt-1">Sector 62 → Gurgaon</p>
+                            <p class="text-xs text-gray-500 font-semibold mt-0.5">15 Apr · 07:00 AM</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xl font-black text-gray-400">₹200</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONNECTIONS TAB -->
+        <div class="tab-panel fade-up" id="panel-connections">
+            <p class="font-black text-brand-blue mb-4">My Connections</p>
+            <div class="space-y-3">
+                <div class="card p-4 flex items-center gap-4">
+                    <img src="https://randomuser.me/api/portraits/men/32.jpg" class="avatar" alt="">
+                    <div class="flex-1">
+                        <p class="font-black text-brand-blue">Arjun Sharma</p>
+                        <p class="text-xs text-gray-500 font-semibold">Honda City · Noida → CP</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="status-pill pill-green">● Active</span>
+                            <span class="text-xs text-gray-400">Tomorrow · 07:30 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button class="w-9 h-9 rounded-xl bg-brand-blue/10 text-brand-blue flex items-center justify-center hover:bg-brand-blue hover:text-white transition"><i class="fa-solid fa-comment-dots text-sm"></i></button>
+                        <button class="w-9 h-9 rounded-xl bg-green-50 text-brand-green flex items-center justify-center"><i class="fa-solid fa-phone text-sm"></i></button>
+                    </div>
+                </div>
+                <div class="card p-4 flex items-center gap-4">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" class="avatar" alt="">
+                    <div class="flex-1">
+                        <p class="font-black text-brand-blue">Priya Mehta</p>
+                        <p class="text-xs text-gray-500 font-semibold">Maruti Swift · Noida → Saket</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="status-pill pill-blue">✓ Past</span>
+                            <span class="rating-stars">★★★★★</span>
+                        </div>
+                    </div>
+                    <button class="py-2 px-3 rounded-xl bg-brand-green/10 text-brand-green text-xs font-bold hover:bg-brand-green hover:text-white transition">Rebook</button>
+                </div>
+                <div class="card p-4 flex items-center gap-4">
+                    <img src="https://randomuser.me/api/portraits/men/67.jpg" class="avatar" alt="">
+                    <div class="flex-1">
+                        <p class="font-black text-brand-blue">Rahul Verma</p>
+                        <p class="text-xs text-gray-500 font-semibold">Royal Enfield · Noida → CP</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="status-pill pill-blue">✓ Past</span>
+                            <span class="rating-stars">★★★★★</span>
+                        </div>
+                    </div>
+                    <button class="py-2 px-3 rounded-xl bg-brand-green/10 text-brand-green text-xs font-bold hover:bg-brand-green hover:text-white transition">Rebook</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESPONSES TAB -->
+        <div class="tab-panel fade-up" id="panel-responses">
+            <p class="font-black text-brand-blue mb-4">My Responses</p>
+            <div class="space-y-3">
+                <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Ride Requests Received</p>
+                <div class="card p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <img src="https://randomuser.me/api/portraits/women/55.jpg" class="avatar" alt="">
+                        <div class="flex-1">
+                            <p class="font-black text-brand-blue">Neha Gupta</p>
+                            <p class="text-xs text-gray-500 font-semibold">Wants 1 seat · Sector 3 → CP · Tomorrow 07:30</p>
+                        </div>
+                        <span class="status-pill pill-orange">Pending</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="flex-1 py-2.5 rounded-xl bg-brand-green text-white text-sm font-bold hover:bg-green-700 transition"><i class="fa-solid fa-check mr-1"></i>Accept</button>
+                        <button class="flex-1 py-2.5 rounded-xl bg-red-50 text-red-500 text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fa-solid fa-xmark mr-1"></i>Decline</button>
+                    </div>
+                </div>
+                <div class="card p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <img src="https://randomuser.me/api/portraits/men/23.jpg" class="avatar" alt="">
+                        <div class="flex-1">
+                            <p class="font-black text-brand-blue">Amit Joshi</p>
+                            <p class="text-xs text-gray-500 font-semibold">Wants 2 seats · Noida → Gurgaon · 28 Apr</p>
+                        </div>
+                        <span class="status-pill pill-orange">Pending</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="flex-1 py-2.5 rounded-xl bg-brand-green text-white text-sm font-bold hover:bg-green-700 transition"><i class="fa-solid fa-check mr-1"></i>Accept</button>
+                        <button class="flex-1 py-2.5 rounded-xl bg-red-50 text-red-500 text-sm font-bold hover:bg-red-500 hover:text-white transition"><i class="fa-solid fa-xmark mr-1"></i>Decline</button>
+                    </div>
+                </div>
+
+                <p class="text-xs font-black text-gray-400 uppercase tracking-widest mt-4">Past Responses</p>
+                <div class="ride-item">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <img src="https://randomuser.me/api/portraits/men/88.jpg" class="w-10 h-10 rounded-xl object-cover" alt="">
+                            <div>
+                                <p class="font-bold text-brand-blue text-sm">Saurabh K.</p>
+                                <p class="text-xs text-gray-400">Noida → CP · 20 Apr</p>
+                            </div>
+                        </div>
+                        <span class="status-pill pill-green">✓ Accepted</span>
+                    </div>
+                </div>
+                <div class="ride-item">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <img src="https://randomuser.me/api/portraits/women/33.jpg" class="w-10 h-10 rounded-xl object-cover" alt="">
+                            <div>
+                                <p class="font-bold text-brand-blue text-sm">Divya M.</p>
+                                <p class="text-xs text-gray-400">Sector 62 → Gurgaon · 18 Apr</p>
+                            </div>
+                        </div>
+                        <span class="status-pill pill-red">✗ Declined</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFILE TAB -->
+        <div class="tab-panel fade-up" id="panel-profile">
+            <p class="font-black text-brand-blue mb-4">Profile Settings</p>
+            <div class="space-y-4">
+                <!-- Personal Info -->
+                <div class="card p-5">
+                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Personal Information</p>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-sm text-gray-500 font-semibold">Full Name</span>
+                            <span class="font-bold text-brand-blue text-sm">Kamalesh Singh</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-sm text-gray-500 font-semibold">Mobile</span>
+                            <span class="font-bold text-brand-blue text-sm">+91 98765 43210</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-sm text-gray-500 font-semibold">Email</span>
+                            <span class="font-bold text-brand-blue text-sm">kamalesh@email.com</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2">
+                            <span class="text-sm text-gray-500 font-semibold">Home Area</span>
+                            <span class="font-bold text-brand-blue text-sm">Sector 3, Noida</span>
+                        </div>
+                    </div>
+                    <button class="w-full mt-4 py-3 rounded-xl border-2 border-brand-blue text-brand-blue font-bold text-sm hover:bg-brand-blue hover:text-white transition">Edit Profile</button>
+                </div>
+
+                <!-- Verification Status -->
+                <div class="card p-5">
+                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Verification Status</p>
+                    <div class="space-y-3">
+                        <div class="verify-badge"><i class="fa-solid fa-id-card text-brand-green text-xl"></i><div><p class="font-bold text-brand-blue text-sm">Aadhaar Verified</p><p class="text-xs text-gray-500">Identity confirmed</p></div><i class="fa-solid fa-check-circle text-brand-green ml-auto text-xl"></i></div>
+                        <div class="verify-badge pending"><i class="fa-solid fa-id-badge text-brand-orange text-xl"></i><div><p class="font-bold text-brand-blue text-sm">Driving Licence</p><p class="text-xs text-gray-500">Upload to drive on Pool India</p></div><button class="ml-auto bg-brand-orange text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-orange-600 transition">Upload</button></div>
+                        <div class="verify-badge pending"><i class="fa-solid fa-car text-brand-orange text-xl"></i><div><p class="font-bold text-brand-blue text-sm">Vehicle Details</p><p class="text-xs text-gray-500">Add your car/bike info</p></div><button class="ml-auto bg-brand-blue text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-blue-900 transition">Add</button></div>
+                    </div>
+                </div>
+
+                <!-- Viksit Bharat -->
+                <div class="card p-5" style="background:linear-gradient(135deg,#fff7ed,#fef3c7);border-color:#fed7aa;">
+                    <div class="flex items-center gap-3 mb-3">
+                        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/120px-Flag_of_India.svg.png" class="w-8 h-5 object-cover rounded" alt="India">
+                        <p class="font-black text-brand-blue">Viksit Bharat Contribution</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-white/70 rounded-xl p-3"><p class="text-xl font-black text-brand-green">8 kg</p><p class="text-xs text-gray-600 font-semibold">CO₂ Saved</p></div>
+                        <div class="bg-white/70 rounded-xl p-3"><p class="text-xl font-black text-brand-blue">42</p><p class="text-xs text-gray-600 font-semibold">Rides Shared</p></div>
+                        <div class="bg-white/70 rounded-xl p-3"><p class="text-xl font-black text-brand-orange">🌱 3</p><p class="text-xs text-gray-600 font-semibold">Trees Equiv.</p></div>
+                    </div>
+                    <p class="text-xs text-amber-700 font-semibold mt-3 text-center">You're a Green Commuter! Keep pooling for a cleaner India 🇮🇳</p>
+                </div>
+
+                <!-- Preferences -->
+                <div class="card p-5">
+                    <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Ride Preferences</p>
+                    <div class="space-y-3">
+                        <label class="flex justify-between items-center cursor-pointer"><span class="font-semibold text-sm text-gray-700">Music OK</span><input type="checkbox" checked class="w-5 h-5 accent-brand-green rounded"></label>
+                        <label class="flex justify-between items-center cursor-pointer"><span class="font-semibold text-sm text-gray-700">AC Preferred</span><input type="checkbox" checked class="w-5 h-5 accent-brand-green rounded"></label>
+                        <label class="flex justify-between items-center cursor-pointer"><span class="font-semibold text-sm text-gray-700">No Smoking</span><input type="checkbox" checked class="w-5 h-5 accent-brand-green rounded"></label>
+                        <label class="flex justify-between items-center cursor-pointer"><span class="font-semibold text-sm text-gray-700">Women Only Rides</span><input type="checkbox" class="w-5 h-5 accent-brand-green rounded"></label>
+                    </div>
+                </div>
+
+                <button onclick="if(confirm('Logout?')) window.location.href='login.html'" class="w-full py-4 rounded-2xl bg-red-50 text-red-500 font-bold border-2 border-red-100 hover:bg-red-500 hover:text-white transition mb-8">
+                    <i class="fa-solid fa-right-from-bracket mr-2"></i> Logout
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function switchTab(name){
+    ['rides','connections','responses','profile'].forEach(t=>{
+        document.getElementById('panel-'+t).classList.toggle('active', t===name);
+        document.getElementById('tb-'+t).classList.toggle('active', t===name);
+    });
+    window.scrollTo({top:200,behavior:'smooth'});
+}
+// Read query param
+const p=new URLSearchParams(window.location.search);
+if(p.get('tab')) switchTab(p.get('tab'));
+</script>
+</body>
+</html>

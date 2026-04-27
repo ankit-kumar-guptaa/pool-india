@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Rides | Pool India</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>tailwind.config={theme:{extend:{fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']},colors:{brand:{green:'#1b8036',blue:'#1d3a70',orange:'#f3821a',light:'#f8fafc'}}}}}</script>
+    <style>
+        body{background:#f1f5f9;}
+        .glass-nav{background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);border-bottom:1px solid #e2e8f0;}
+        .ride-card{background:#fff;border-radius:1.5rem;border:1.5px solid #e2e8f0;transition:all 0.3s;cursor:pointer;}
+        .ride-card:hover{border-color:#1b8036;box-shadow:0 8px 32px rgba(27,128,54,0.12);transform:translateY(-3px);}
+        .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;}
+        .filter-chip{padding:8px 18px;border-radius:999px;border:2px solid #e2e8f0;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;background:#fff;color:#64748b;}
+        .filter-chip.active,.filter-chip:hover{border-color:#1b8036;background:#f0fdf4;color:#1b8036;}
+        .search-bar{background:#fff;border-radius:1.5rem;border:1.5px solid #e2e8f0;padding:16px 20px;}
+        .avatar-stack .avatar{width:32px;height:32px;border-radius:50%;border:2px solid #fff;margin-left:-10px;object-fit:cover;background:#e2e8f0;}
+        .avatar-stack .avatar:first-child{margin-left:0;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+        .fade-up{animation:fadeUp 0.5s ease both;}
+        .rating-stars{color:#f3821a;font-size:12px;}
+        .route-dot{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;background:#fff;}
+        .route-line{width:1.5px;height:24px;background:#d1d5db;margin:0 auto;}
+        .verified-badge{background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;}
+    </style>
+</head>
+<body class="font-sans text-gray-800">
+
+<!-- Navbar -->
+<nav class="glass-nav fixed w-full z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+        <a href="index.html" class="flex items-center gap-2">
+            <img src="images/logo.png" alt="Pool India" class="w-10 h-10 object-contain">
+            <span class="font-black text-brand-blue text-lg">POOL <span class="text-brand-green">India</span></span>
+        </a>
+        <div class="flex items-center gap-3">
+            <a href="profile.html" class="w-9 h-9 rounded-full bg-brand-blue/10 flex items-center justify-center text-brand-blue hover:bg-brand-blue hover:text-white transition">
+                <i class="fa-solid fa-user text-sm"></i>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="pt-16">
+    <!-- Search Header -->
+    <div class="bg-brand-blue text-white">
+        <div class="max-w-4xl mx-auto px-4 py-6">
+            <div class="search-bar flex flex-col sm:flex-row items-center gap-3 cursor-pointer" onclick="document.getElementById('edit-search-modal').classList.remove('hidden')">
+                <div class="flex items-center gap-2 flex-1">
+                    <i class="fa-solid fa-circle-dot text-brand-green text-sm"></i>
+                    <span class="font-bold text-brand-blue text-sm" id="disp-from">Sector 3, Noida</span>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-400 hidden sm:block"></i>
+                <i class="fa-solid fa-arrow-down text-gray-400 sm:hidden"></i>
+                <div class="flex items-center gap-2 flex-1">
+                    <i class="fa-solid fa-location-dot text-brand-orange text-sm"></i>
+                    <span class="font-bold text-brand-blue text-sm" id="disp-to">Connaught Place, Delhi</span>
+                </div>
+                <div class="text-xs text-gray-500 font-semibold border-l border-gray-200 pl-3" id="disp-date">Today · 1 Seat</div>
+                <div class="w-8 h-8 bg-brand-green/10 rounded-xl flex items-center justify-center text-brand-green shrink-0">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 py-6">
+        <!-- Filter Chips -->
+        <div class="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-none">
+            <button class="filter-chip active" onclick="setFilter(this,'all')"><i class="fa-solid fa-border-all mr-1"></i>All</button>
+            <button class="filter-chip" onclick="setFilter(this,'carpool')"><i class="fa-solid fa-car-side mr-1"></i>Carpool</button>
+            <button class="filter-chip" onclick="setFilter(this,'bike')"><i class="fa-solid fa-motorcycle mr-1"></i>Bike</button>
+            <button class="filter-chip" onclick="setFilter(this,'cab')"><i class="fa-solid fa-taxi mr-1"></i>CabShare</button>
+            <button class="filter-chip" onclick="setFilter(this,'women')"><i class="fa-solid fa-venus mr-1"></i>Women Only</button>
+            <button class="filter-chip" onclick="setFilter(this,'cheap')"><i class="fa-solid fa-indian-rupee-sign mr-1"></i>Cheapest</button>
+        </div>
+
+        <!-- Results Count -->
+        <p class="text-sm text-gray-500 font-semibold mb-4" id="results-count">14 rides found · Sorted by departure time</p>
+
+        <!-- Ride Cards -->
+        <div class="space-y-4" id="rides-list">
+
+            <!-- Card 1 -->
+            <div class="ride-card p-5 fade-up" style="animation-delay:0.05s" onclick="window.location.href='ride-detail.html?id=1'">
+                <div class="flex items-start gap-4">
+                    <img src="https://randomuser.me/api/portraits/men/32.jpg" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="Arjun">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-black text-brand-blue text-base">Arjun Sharma</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="rating-stars">★★★★★</span>
+                                    <span class="text-xs text-gray-500 font-semibold">4.9 · 148 rides</span>
+                                    <span class="verified-badge">✓ Verified</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-black text-brand-green">₹120</p>
+                                <p class="text-xs text-gray-400 font-semibold">per seat</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 mt-3">
+                            <div class="flex flex-col items-center shrink-0">
+                                <div class="route-dot text-brand-green"></div>
+                                <div class="route-line"></div>
+                                <div class="route-dot text-brand-orange"></div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between mb-3">
+                                    <div>
+                                        <p class="font-bold text-sm text-brand-blue">07:30 AM</p>
+                                        <p class="text-xs text-gray-500">Sector 3, Noida</p>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between">
+                                    <div>
+                                        <p class="font-bold text-sm text-brand-blue">09:00 AM</p>
+                                        <p class="text-xs text-gray-500">Connaught Place, Delhi</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500 font-semibold self-end">~1h 30m</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                            <div class="flex items-center gap-2">
+                                <span class="badge bg-blue-50 text-brand-blue"><i class="fa-solid fa-car-side"></i> Carpool</span>
+                                <span class="badge bg-gray-50 text-gray-600"><i class="fa-regular fa-user"></i> 2 seats left</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500 font-semibold">Honda City · DL-3C</span>
+                                <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="ride-card p-5 fade-up" style="animation-delay:0.1s" onclick="window.location.href='ride-detail.html?id=2'">
+                <div class="flex items-start gap-4">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="Priya">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-black text-brand-blue text-base">Priya Mehta</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="rating-stars">★★★★☆</span>
+                                    <span class="text-xs text-gray-500 font-semibold">4.7 · 89 rides</span>
+                                    <span class="verified-badge">✓ Verified</span>
+                                    <span class="badge bg-pink-50 text-pink-600" style="font-size:10px;padding:2px 8px;"><i class="fa-solid fa-venus mr-1"></i>Women Only</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-black text-brand-green">₹90</p>
+                                <p class="text-xs text-gray-400 font-semibold">per seat</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 mt-3">
+                            <div class="flex flex-col items-center shrink-0">
+                                <div class="route-dot text-brand-green"></div>
+                                <div class="route-line"></div>
+                                <div class="route-dot text-brand-orange"></div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="mb-3">
+                                    <p class="font-bold text-sm text-brand-blue">08:00 AM</p>
+                                    <p class="text-xs text-gray-500">Sector 3, Noida</p>
+                                </div>
+                                <div class="flex justify-between">
+                                    <div>
+                                        <p class="font-bold text-sm text-brand-blue">09:30 AM</p>
+                                        <p class="text-xs text-gray-500">Connaught Place, Delhi</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500 font-semibold self-end">~1h 30m</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                            <div class="flex items-center gap-2">
+                                <span class="badge bg-blue-50 text-brand-blue"><i class="fa-solid fa-car-side"></i> Carpool</span>
+                                <span class="badge bg-gray-50 text-gray-600"><i class="fa-regular fa-user"></i> 1 seat left</span>
+                            </div>
+                            <span class="text-xs text-gray-500 font-semibold">Maruti Swift · UP-16</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="ride-card p-5 fade-up" style="animation-delay:0.15s" onclick="window.location.href='ride-detail.html?id=3'">
+                <div class="flex items-start gap-4">
+                    <img src="https://randomuser.me/api/portraits/men/67.jpg" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="Rahul">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-black text-brand-blue text-base">Rahul Verma</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="rating-stars">★★★★★</span>
+                                    <span class="text-xs text-gray-500 font-semibold">5.0 · 212 rides</span>
+                                    <span class="verified-badge">✓ Verified</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-black text-brand-orange">₹70</p>
+                                <p class="text-xs text-gray-400 font-semibold">per seat</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 mt-3">
+                            <div class="flex flex-col items-center shrink-0">
+                                <div class="route-dot text-brand-green"></div>
+                                <div class="route-line"></div>
+                                <div class="route-dot text-brand-orange"></div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="mb-3">
+                                    <p class="font-bold text-sm text-brand-blue">08:30 AM</p>
+                                    <p class="text-xs text-gray-500">Sector 3, Noida</p>
+                                </div>
+                                <div class="flex justify-between">
+                                    <div>
+                                        <p class="font-bold text-sm text-brand-blue">10:00 AM</p>
+                                        <p class="text-xs text-gray-500">Connaught Place, Delhi</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500 font-semibold self-end">~1h 30m</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                            <div class="flex items-center gap-2">
+                                <span class="badge bg-orange-50 text-brand-orange"><i class="fa-solid fa-motorcycle"></i> Bike</span>
+                                <span class="badge bg-gray-50 text-gray-600"><i class="fa-regular fa-user"></i> 1 seat left</span>
+                            </div>
+                            <span class="text-xs text-gray-500 font-semibold">Royal Enfield · DL-7S</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="ride-card p-5 fade-up" style="animation-delay:0.2s" onclick="window.location.href='ride-detail.html?id=4'">
+                <div class="flex items-start gap-4">
+                    <img src="https://randomuser.me/api/portraits/men/11.jpg" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="Vikram">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-black text-brand-blue text-base">Vikram Singh</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="rating-stars">★★★★☆</span>
+                                    <span class="text-xs text-gray-500 font-semibold">4.6 · 53 rides</span>
+                                    <span class="verified-badge">✓ Verified</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-black text-brand-green">₹150</p>
+                                <p class="text-xs text-gray-400 font-semibold">per seat</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 mt-3">
+                            <div class="flex flex-col items-center shrink-0">
+                                <div class="route-dot text-brand-green"></div>
+                                <div class="route-line"></div>
+                                <div class="route-dot text-brand-orange"></div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="mb-3">
+                                    <p class="font-bold text-sm text-brand-blue">09:00 AM</p>
+                                    <p class="text-xs text-gray-500">Sector 3, Noida</p>
+                                </div>
+                                <div class="flex justify-between">
+                                    <div>
+                                        <p class="font-bold text-sm text-brand-blue">10:20 AM</p>
+                                        <p class="text-xs text-gray-500">Connaught Place, Delhi</p>
+                                    </div>
+                                    <p class="text-xs text-gray-500 font-semibold self-end">~1h 20m</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                            <div class="flex items-center gap-2">
+                                <span class="badge bg-brand-blue/10 text-brand-blue"><i class="fa-solid fa-taxi"></i> CabShare</span>
+                                <span class="badge bg-gray-50 text-gray-600"><i class="fa-regular fa-user"></i> 3 seats left</span>
+                            </div>
+                            <span class="text-xs text-gray-500 font-semibold">Toyota Innova · UP-14</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Load More -->
+        <button class="w-full mt-6 py-4 rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 font-bold hover:border-brand-green hover:text-brand-green transition" onclick="loadMore()">
+            <i class="fa-solid fa-chevron-down mr-2"></i> Load More Rides
+        </button>
+    </div>
+</div>
+
+<script>
+function setFilter(el, type) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+}
+function loadMore() {
+    alert('Loading more rides...');
+}
+
+// Read URL params and fill search bar
+const params = new URLSearchParams(window.location.search);
+if (params.get('from')) document.getElementById('disp-from').textContent = params.get('from');
+if (params.get('to')) document.getElementById('disp-to').textContent = params.get('to');
+if (params.get('date')) document.getElementById('disp-date').textContent = params.get('date') + ' · ' + (params.get('seats')||1) + ' Seat';
+</script>
+</body>
+</html>
