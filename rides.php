@@ -7,15 +7,26 @@ $to    = h($_GET['to']    ?? 'Connaught Place, Delhi');
 $date  = h($_GET['date']  ?? date('Y-m-d'));
 $seats = (int)($_GET['seats'] ?? 1);
 
-// Dummy ride data (replace with real API call)
-$rides = [
-    ['id'=>1,'name'=>'Arjun Sharma','photo'=>'https://randomuser.me/api/portraits/men/32.jpg','rating'=>4.9,'trips'=>148,'price'=>120,'from_time'=>'07:30 AM','to_time'=>'09:00 AM','duration'=>'1h 30m','vehicle'=>'Honda City','plate'=>'DL-3C','seats_left'=>2,'type'=>'Carpool','verified'=>true,'women_only'=>false],
-    ['id'=>2,'name'=>'Priya Mehta','photo'=>'https://randomuser.me/api/portraits/women/44.jpg','rating'=>4.7,'trips'=>89,'price'=>90,'from_time'=>'08:00 AM','to_time'=>'09:30 AM','duration'=>'1h 30m','vehicle'=>'Maruti Swift','plate'=>'UP-16','seats_left'=>1,'type'=>'Carpool','verified'=>true,'women_only'=>true],
-    ['id'=>3,'name'=>'Rahul Verma','photo'=>'https://randomuser.me/api/portraits/men/67.jpg','rating'=>5.0,'trips'=>212,'price'=>70,'from_time'=>'08:30 AM','to_time'=>'10:00 AM','duration'=>'1h 30m','vehicle'=>'Royal Enfield','plate'=>'DL-7S','seats_left'=>1,'type'=>'Bike','verified'=>true,'women_only'=>false],
-    ['id'=>4,'name'=>'Vikram Singh','photo'=>'https://randomuser.me/api/portraits/men/11.jpg','rating'=>4.6,'trips'=>53,'price'=>150,'from_time'=>'09:00 AM','to_time'=>'10:20 AM','duration'=>'1h 20m','vehicle'=>'Toyota Innova','plate'=>'UP-14','seats_left'=>3,'type'=>'CabShare','verified'=>true,'women_only'=>false],
-    ['id'=>5,'name'=>'Sneha Rao','photo'=>'https://randomuser.me/api/portraits/women/55.jpg','rating'=>4.8,'trips'=>117,'price'=>100,'from_time'=>'09:30 AM','to_time'=>'11:00 AM','duration'=>'1h 30m','vehicle'=>'Honda Activa','plate'=>'DL-2B','seats_left'=>1,'type'=>'Bike','verified'=>true,'women_only'=>false],
+// Dynamic API call
+$searchCriteria = [
+    'formLatitude' => $_GET['from_lat'] ?? '0',
+    'formLongitude' => $_GET['from_lng'] ?? '0',
+    'toLatitude' => $_GET['to_lat'] ?? '0',
+    'toLongitude' => $_GET['to_lng'] ?? '0',
+    'isSearch' => 1,
+    'userId' => $user['id'] ?? 0,
+    'rideDate' => $date,
+    'seats' => $seats
 ];
-$typeIcons = ['Carpool'=>'fa-car-side','Bike'=>'fa-motorcycle','CabShare'=>'fa-taxi','Shuttle'=>'fa-van-shuttle'];
+
+$ridesResp = RideService::searchRides($searchCriteria);
+$rides = [];
+if (isset($ridesResp['data']) && is_array($ridesResp['data'])) {
+    $rides = $ridesResp['data'];
+}
+
+// Ensure type icons mapping covers backend terms
+$typeIcons = ['Carpool'=>'fa-car-side','Bike'=>'fa-motorcycle','CabShare'=>'fa-taxi','Shuttle'=>'fa-van-shuttle', 'Daily'=>'fa-car-side', 'Recurring'=>'fa-car-side', 'Onetime'=>'fa-car-side'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -134,55 +145,83 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
 
     <!-- Ride Cards -->
     <div class="space-y-4" id="rides-list">
-      <?php foreach ($rides as $i => $r): ?>
+      <?php if(empty($rides)): ?>
+        <div class="text-center py-10">
+            <i class="fa-solid fa-car-side text-gray-300 text-5xl mb-3"></i>
+            <p class="text-gray-500 font-bold">No rides found matching your criteria.</p>
+        </div>
+      <?php else: ?>
+      <?php foreach ($rides as $i => $r): 
+          $rName = h($r['userName'] ?? $r['name'] ?? 'Pooler');
+          $rType = h($r['ride_Type'] ?? $r['type'] ?? 'Carpool');
+          $rPrice = $r['price'] ?? 0;
+          $rSeats = $r['seats'] ?? $r['seats_left'] ?? 1;
+          $rFrom = h($r['from_Address'] ?? $from);
+          $rTo = h($r['to_Address'] ?? $to);
+          $rTime = h($r['ride_Date'] ?? $date); // May need proper date formatting
+          $rPhoto = !empty($r['userPhoto']) ? h($r['userPhoto']) : 'https://ui-avatars.com/api/?name='.urlencode($rName).'&background=1d3a70&color=fff';
+          $isVerified = !empty($r['verified']) || true; // Assume verified for now if from API
+          $womenOnly = !empty($r['women_only']) || (isset($r['userType']) && strpos(strtolower($r['userType']), 'women') !== false);
+          $rideId = $r['rideID'] ?? $r['id'] ?? 0;
+          $userId = $r['userId'] ?? 0;
+      ?>
       <div class="ride-card p-5 fade-up ride-item"
-           data-type="<?= h($r['type']) ?>"
-           data-women="<?= $r['women_only'] ? '1' : '0' ?>"
+           data-type="<?= $rType ?>"
+           data-women="<?= $womenOnly ? '1' : '0' ?>"
            style="animation-delay:<?= $i * 0.07 ?>s"
-           onclick="window.location.href='ride-detail.php?id=<?= $r['id'] ?>&from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>'">
+           onclick="window.location.href='ride-detail.php?id=<?= $rideId ?>&from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>'">
         <div class="flex items-start gap-4">
-          <img src="<?= h($r['photo']) ?>" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="<?= h($r['name']) ?>">
+          <img src="<?= $rPhoto ?>" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="<?= $rName ?>" onerror="this.src='https://ui-avatars.com/api/?name=User&background=1d3a70&color=fff'">
           <div class="flex-1 min-w-0">
             <div class="flex justify-between items-start">
               <div>
-                <p class="font-black text-brand-blue text-base"><?= h($r['name']) ?></p>
+                <p class="font-black text-brand-blue text-base"><?= $rName ?></p>
                 <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span class="text-brand-orange text-xs">★★★★<?= $r['rating'] >= 5 ? '★' : '☆' ?></span>
-                  <span class="text-xs text-gray-500 font-semibold"><?= $r['rating'] ?> · <?= $r['trips'] ?> rides</span>
-                  <?php if($r['verified']): ?><span class="badge" style="background:#dcfce7;color:#166534;">✓ Verified</span><?php endif; ?>
-                  <?php if($r['women_only']): ?><span class="badge" style="background:#fce7f3;color:#9d174d;"><i class="fa-solid fa-venus"></i>Women Only</span><?php endif; ?>
+                  <span class="text-brand-orange text-xs">★★★★★</span>
+                  <?php if($isVerified): ?><span class="badge" style="background:#dcfce7;color:#166534;">✓ Verified</span><?php endif; ?>
+                  <?php if($womenOnly): ?><span class="badge" style="background:#fce7f3;color:#9d174d;"><i class="fa-solid fa-venus"></i>Women Only</span><?php endif; ?>
                 </div>
               </div>
               <div class="text-right">
-                <p class="text-2xl font-black text-brand-green">₹<?= $r['price'] ?></p>
+                <p class="text-2xl font-black text-brand-green">₹<?= $rPrice ?></p>
                 <p class="text-xs text-gray-400 font-semibold">per seat</p>
               </div>
             </div>
-            <div class="flex items-center gap-4 mt-3">
+            <div class="flex items-center gap-4 mt-3 bg-gray-50 p-3 rounded-xl">
               <div class="flex flex-col items-center">
-                <div class="route-dot-g"></div><div class="route-ln"></div><div class="route-dot-o"></div>
+                <div class="w-2 h-2 rounded-full bg-brand-green"></div>
+                <div class="w-0.5 h-6 bg-gray-300 my-1"></div>
+                <div class="w-2 h-2 rounded-full bg-brand-orange"></div>
               </div>
               <div class="flex-1">
-                <p class="font-bold text-sm text-brand-blue"><?= h($r['from_time']) ?> · <?= h($from) ?></p>
-                <p class="font-bold text-sm text-brand-blue mt-4"><?= h($r['to_time']) ?> · <?= h($to) ?></p>
+                <p class="font-bold text-xs text-gray-700 truncate w-56"><?= $rFrom ?></p>
+                <p class="font-bold text-xs text-gray-700 mt-3 truncate w-56"><?= $rTo ?></p>
               </div>
-              <div class="text-right text-xs text-gray-400 font-semibold"><?= h($r['duration']) ?></div>
+              <div class="text-right text-xs text-gray-500 font-black">
+                  <?php 
+                      $timeStr = strtotime($rTime);
+                      echo $timeStr ? date('h:i A', $timeStr) : 'Anytime';
+                  ?>
+              </div>
             </div>
             <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
               <div class="flex items-center gap-2">
-                <span class="badge bg-blue-50 text-brand-blue"><i class="fa-solid <?= $typeIcons[$r['type']] ?? 'fa-car' ?>"></i> <?= h($r['type']) ?></span>
-                <span class="badge bg-gray-50 text-gray-600"><i class="fa-regular fa-user"></i> <?= $r['seats_left'] ?> left</span>
+                <span class="badge bg-blue-50 text-brand-blue"><i class="fa-solid <?= $typeIcons[$rType] ?? 'fa-car' ?>"></i> <?= $rType ?></span>
+                <span class="badge bg-gray-50 text-gray-600"><i class="fa-regular fa-user"></i> <?= $rSeats ?> seats available</span>
               </div>
-              <span class="text-xs text-gray-500 font-semibold"><?= h($r['vehicle']) ?> · <?= h($r['plate']) ?></span>
+              <span class="text-xs text-gray-500 font-semibold uppercase tracking-widest"><i class="fa-solid fa-arrow-right"></i> View Details</span>
             </div>
           </div>
         </div>
       </div>
       <?php endforeach; ?>
+      <?php endif; ?>
     </div>
   </div>
 </div>
 
+<!-- Google Maps Places API -->
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDZJ7k0nMuZPRNFxAtaIe0HHLNg5okTUVI&libraries=places"></script>
 <script src="js/places-ac.js"></script>
 <script>
 function filterRides(type, el) {

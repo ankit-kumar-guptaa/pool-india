@@ -17,6 +17,18 @@ class RideService {
     }
 
     public static function getMyRides(int $userId) {
-        return ApiService::post('app/GetMyRideList', ['userId' => $userId]);
+        return ApiService::get("App/GetMyRideList?UserID=$userId");
+    }
+
+    public static function getMyConnections(int $userId) {
+        $payload = [
+            'spName' => 'usp_GreenCar_GetMyConnection',
+            'payload' => json_encode(['user_id' => $userId])
+        ];
+        return ApiService::post('Ride/GetDataFromServer', $payload);
+    }
+
+    public static function getCo2Details(int $userId) {
+        return ApiService::get("App/GetCo2Details?userid=$userId");
     }
 }

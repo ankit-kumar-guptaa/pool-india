@@ -3,7 +3,7 @@
  * Usage: PI_Places.init(config)
  */
 const PI_Places = (() => {
-    const GMAPS_KEY = 'AIzaSyACJN-sW-L2ivF34qIr7X3T8K9DwzOhcsc';
+    const GMAPS_KEY = 'AIzaSyDZJ7k0nMuZPRNFxAtaIe0HHLNg5okTUVI';
 
     // Inject Google Maps script once
     let _loaded = false;

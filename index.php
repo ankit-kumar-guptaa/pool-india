@@ -849,6 +849,8 @@ $userName = h(currentUser()['name'] ?? ''); ?>
         </div>
     </footer>
 
+    <!-- Google Maps Places API -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDZJ7k0nMuZPRNFxAtaIe0HHLNg5okTUVI&libraries=places"></script>
     <!-- Places AC Helper -->
     <script src="js/places-ac.js"></script>
     <!-- Scripts -->
