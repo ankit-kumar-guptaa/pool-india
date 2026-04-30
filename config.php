@@ -14,43 +14,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ── Helper: proxy POST to GreenCar API ──────────────────────────────────────
-function apiPost(string $endpoint, array $body): array {
-    $url = API_BASE . '/' . ltrim($endpoint, '/');
-    $ch  = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode($body),
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json'],
-        CURLOPT_TIMEOUT        => 15,
-        CURLOPT_SSL_VERIFYPEER => false,
-    ]);
-    $raw  = curl_exec($ch);
-    $err  = curl_error($ch);
-    curl_close($ch);
-    if ($err) return ['__curl_error' => $err];
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : ['__raw' => $raw];
-}
-
-// ── Helper: proxy GET to GreenCar API ───────────────────────────────────────
-function apiGet(string $endpoint): array {
-    $url = API_BASE . '/' . ltrim($endpoint, '/');
-    $ch  = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER     => ['Accept: application/json'],
-        CURLOPT_TIMEOUT        => 15,
-        CURLOPT_SSL_VERIFYPEER => false,
-    ]);
-    $raw = curl_exec($ch);
-    $err = curl_error($ch);
-    curl_close($ch);
-    if ($err) return ['__curl_error' => $err];
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : ['__raw' => $raw];
-}
+// ── Load Backend Services ────────────────────────────────────────────────────
+require_once __DIR__ . '/backend/ApiService.php';
+require_once __DIR__ . '/backend/AuthService.php';
+require_once __DIR__ . '/backend/RideService.php';
+require_once __DIR__ . '/backend/ProfileService.php';
 
 // ── Helper: check logged in ──────────────────────────────────────────────────
 function isLoggedIn(): bool {

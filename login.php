@@ -7,7 +7,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
     if (strlen($phone) !== 10) {
         jsonResponse(['ok' => false, 'msg' => 'Enter a valid 10-digit mobile number.']);
     }
-    $resp = apiGet("Ride/SendOTP?MobileNo=$phone");
+    
+    $resp = AuthService::sendOTP($phone);
+    
     if (isset($resp['__curl_error'])) {
         jsonResponse(['ok' => false, 'msg' => 'Network error. Try again.']);
     }
@@ -27,8 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if ($entered !== $secret) jsonResponse(['ok' => false, 'msg' => 'Incorrect OTP. Try again.']);
 
     $phone   = $_SESSION['otp_phone'] ?? '';
-    $payload = ['spName' => 'CORP_Login_Phone', 'payload' => json_encode(['mobile_No' => $phone])];
-    $resp    = apiPost('Ride/GetDataFromServer', $payload);
+    $resp    = AuthService::verifyUserPhone($phone);
 
     if (
         isset($resp['status']) && $resp['status'] === 1
@@ -44,34 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $_SESSION['user'] = ['name' => 'User', 'mobile_No' => $phone];
     unset($_SESSION['otp_secret'], $_SESSION['otp_phone']);
     jsonResponse(['ok' => true, 'name' => 'User', 'redirect' => 'rides.php']);
-}
-
-// ── AJAX: Email + Password Login ─────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'email_login') {
-    $email    = trim($_POST['email'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-
-    if (!$email || !$password) {
-        jsonResponse(['ok' => false, 'msg' => 'Email and password are required.']);
-    }
-
-    $payload = ['spName' => 'CORP_Login', 'payload' => json_encode(['email' => $email, 'Password' => $password])];
-    $resp    = apiPost('Ride/GetDataFromServer', $payload);
-
-    if (isset($resp['__curl_error'])) {
-        jsonResponse(['ok' => false, 'msg' => 'Server unreachable. Check your connection.']);
-    }
-
-    if (
-        isset($resp['status']) && $resp['status'] === 1
-        && !empty($resp['data']['dataset']['table'])
-    ) {
-        $user = json_decode($resp['data']['dataset']['table1'][0]['userdetails'], true)[0] ?? [];
-        $_SESSION['user'] = $user;
-        jsonResponse(['ok' => true, 'name' => $user['name'] ?? 'User', 'redirect' => urldecode($_POST['redirect'] ?? 'rides.php')]);
-    }
-
-    jsonResponse(['ok' => false, 'msg' => 'Invalid email or password.']);
 }
 
 // ── LOGOUT ───────────────────────────────────────────────────────────────────
@@ -99,6 +72,9 @@ $redirect = h($_GET['redirect'] ?? 'rides.php');
         body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
         .left-panel{background:linear-gradient(145deg,#1d3a70 0%,#0d2252 60%,#1b3a60 100%);}
         .auth-card{background:#fff;border-radius:0 2rem 2rem 0;box-shadow:0 20px 60px rgba(29,58,112,0.1);}
+        @media (max-width: 1024px) {
+            .auth-card { border-radius: 2rem; }
+        }
         .field-wrap{position:relative;}
         .field-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:15px;pointer-events:none;}
         .field-input{width:100%;background:#f8fafc;border:2px solid #e2e8f0;border-radius:14px;padding:14px 16px 14px 46px;font-size:15px;font-weight:600;color:#1d3a70;outline:none;transition:all .25s;font-family:'Plus Jakarta Sans',sans-serif;}
@@ -109,8 +85,6 @@ $redirect = h($_GET['redirect'] ?? 'rides.php');
         .btn-green{width:100%;background:linear-gradient(135deg,#1b8036,#157a2e);color:#fff;font-weight:800;font-size:16px;padding:15px;border-radius:14px;border:none;cursor:pointer;transition:all .25s;box-shadow:0 6px 20px rgba(27,128,54,.3);}
         .btn-green:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 28px rgba(27,128,54,.4);}
         .btn-green:disabled{opacity:.65;cursor:not-allowed;}
-        .mode-tab{flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;transition:all .25s;border:none;background:transparent;color:#94a3b8;}
-        .mode-tab.active{background:#1d3a70;color:#fff;box-shadow:0 4px 12px rgba(29,58,112,.25);}
         .panel{display:none;} .panel.active{display:block;}
         #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:13px 22px;border-radius:14px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:10px;z-index:9999;transition:transform .35s,opacity .35s;opacity:0;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.12);}
         #toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
@@ -123,10 +97,6 @@ $redirect = h($_GET['redirect'] ?? 'rides.php');
         .float-y{animation:floatY 5s ease-in-out infinite;}
         .spin{animation:spin .8s linear infinite;}
         @keyframes spin{to{transform:rotate(360deg);}}
-        .toggle-pw{position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:#94a3b8;}
-        .toggle-pw:hover{color:#1b8036;}
-        .divider{display:flex;align-items:center;gap:12px;color:#94a3b8;font-size:13px;font-weight:600;margin:16px 0;}
-        .divider::before,.divider::after{content:'';flex:1;height:1px;background:#e2e8f0;}
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -163,57 +133,39 @@ $redirect = h($_GET['redirect'] ?? 'rides.php');
 
     <!-- RIGHT PANEL -->
     <div class="auth-card flex-1 p-8 sm:p-10 flex flex-col justify-center">
-        <div class="lg:hidden flex items-center gap-3 mb-6">
-            <img src="images/logo.png" class="w-8 h-8 object-contain" alt="">
-            <span class="font-black text-brand-blue text-lg">POOL <span class="text-brand-green">India</span></span>
-        </div>
-
-        <!-- Mode Tabs -->
-        <div class="flex gap-1 bg-gray-100 rounded-xl p-1 mb-7">
-            <button class="mode-tab active" id="tab-email" onclick="setMode('email')"><i class="fa-solid fa-envelope mr-1.5"></i>Email Login</button>
-            <button class="mode-tab" id="tab-phone" onclick="setMode('phone')"><i class="fa-solid fa-mobile-screen-button mr-1.5"></i>Phone OTP</button>
-        </div>
-
-        <!-- EMAIL LOGIN -->
-        <div class="panel active fade-up" id="panel-email">
-            <h1 class="text-2xl font-black text-brand-blue mb-1">Welcome Back 👋</h1>
-            <p class="text-gray-400 text-sm font-semibold mb-6">Sign in to your Pool India account</p>
-            <div class="space-y-4 mb-5">
-                <div class="field-wrap">
-                    <i class="field-icon fa-solid fa-envelope"></i>
-                    <input id="em-email" type="email" placeholder="your@email.com" class="field-input">
-                </div>
-                <div class="field-wrap">
-                    <i class="field-icon fa-solid fa-lock"></i>
-                    <input id="em-pw" type="password" placeholder="Password" class="field-input" style="padding-right:46px" onkeydown="if(event.key==='Enter')doEmailLogin()">
-                    <span class="toggle-pw" onclick="togglePw()"><i id="pw-eye" class="fa-solid fa-eye-slash"></i></span>
-                </div>
-            </div>
-            <div class="flex justify-end mb-5">
-                <button onclick="toast('info','Password reset link will be sent to your email.')" class="text-brand-green text-sm font-bold hover:underline">Forgot Password?</button>
-            </div>
-            <button id="btn-email-login" class="btn-green" onclick="doEmailLogin()">Sign In <i class="fa-solid fa-arrow-right ml-2"></i></button>
-            <div class="divider">or</div>
-            <div class="text-center"><span class="text-gray-400 text-sm font-semibold">New here? </span><a href="#" onclick="toast('info','Download the Pool India app to register.')" class="text-brand-green font-black text-sm hover:underline">Download App</a></div>
+        <div class="lg:hidden flex items-center gap-3 mb-10 justify-center">
+            <img src="images/logo.png" class="w-10 h-10 object-contain" alt="">
+            <span class="font-black text-brand-blue text-2xl">POOL <span class="text-brand-green">India</span></span>
         </div>
 
         <!-- PHONE STEP 1 -->
-        <div class="panel" id="panel-phone-enter">
-            <h1 class="text-2xl font-black text-brand-blue mb-1">Login with OTP 📱</h1>
-            <p class="text-gray-400 text-sm font-semibold mb-6">Enter your registered mobile number</p>
+        <div class="panel active fade-up" id="panel-phone-enter">
+            <h1 class="text-3xl font-black text-brand-blue mb-2">Welcome! 👋</h1>
+            <p class="text-gray-400 text-sm font-semibold mb-8">Enter your mobile number to sign in or register instantly.</p>
+            
             <div class="field-wrap mb-6">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-brand-blue font-bold text-sm pointer-events-none">🇮🇳 +91</span>
-                <input id="ph-num" type="tel" maxlength="10" placeholder="98765 43210" class="field-input" style="padding-left:72px" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')doSendOtp()">
+                <input id="ph-num" type="tel" maxlength="10" placeholder="98765 43210" class="field-input text-lg tracking-wider" style="padding-left:72px" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')doSendOtp()">
             </div>
-            <button id="btn-send-otp" class="btn-green" onclick="doSendOtp()">Send OTP <i class="fa-solid fa-paper-plane ml-2"></i></button>
+            
+            <button id="btn-send-otp" class="btn-green text-lg py-4 mb-6" onclick="doSendOtp()">Continue with Mobile <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            
+            <div class="text-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                <p class="text-brand-blue text-xs font-semibold leading-relaxed">
+                    By continuing, you agree to Pool India's<br>
+                    <a href="#" class="text-brand-green hover:underline font-bold">Terms of Service</a> and <a href="#" class="text-brand-green hover:underline font-bold">Privacy Policy</a>.
+                </p>
+            </div>
         </div>
 
         <!-- PHONE STEP 2 -->
         <div class="panel" id="panel-phone-otp">
-            <button onclick="showPanel('panel-phone-enter')" class="flex items-center gap-2 text-brand-blue font-bold text-sm mb-5 hover:text-brand-green transition"><i class="fa-solid fa-arrow-left"></i> Change Number</button>
-            <h1 class="text-2xl font-black text-brand-blue mb-1">Enter OTP 🔐</h1>
-            <p class="text-gray-400 text-sm font-semibold mb-6">Sent to <span id="otp-ph-disp" class="text-brand-blue font-black"></span></p>
-            <div class="flex justify-between gap-2 mb-6" id="otp-boxes">
+            <button onclick="showPanel('panel-phone-enter')" class="w-10 h-10 rounded-full border-2 border-gray-100 flex items-center justify-center text-gray-400 hover:border-brand-blue hover:text-brand-blue hover:bg-blue-50 transition mb-6"><i class="fa-solid fa-arrow-left"></i></button>
+            
+            <h1 class="text-3xl font-black text-brand-blue mb-2">Verify Number 🔐</h1>
+            <p class="text-gray-400 text-sm font-semibold mb-8">Enter the 6-digit code sent to <span id="otp-ph-disp" class="text-brand-blue font-black"></span></p>
+            
+            <div class="flex justify-between gap-2 mb-8" id="otp-boxes">
                 <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
                 <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
                 <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
@@ -221,15 +173,17 @@ $redirect = h($_GET['redirect'] ?? 'rides.php');
                 <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
                 <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this)" onkeydown="otpBack(event,this)">
             </div>
-            <button id="btn-verify-otp" class="btn-green mb-3" onclick="doVerifyOtp()">Verify & Login <i class="fa-solid fa-check ml-2"></i></button>
+            
+            <button id="btn-verify-otp" class="btn-green text-lg py-4 mb-4" onclick="doVerifyOtp()">Verify & Login <i class="fa-solid fa-check ml-2"></i></button>
+            
             <p class="text-center text-sm text-gray-400 font-semibold">
-                Didn't receive?
-                <button id="resend-btn" class="text-brand-green font-black hover:underline ml-1" onclick="doSendOtp()">Resend OTP</button>
-                <span id="resend-timer" class="hidden font-bold ml-1"></span>
+                Didn't receive code?
+                <button id="resend-btn" class="text-brand-green font-black hover:underline ml-1 px-2 py-1" onclick="doSendOtp()">Resend OTP</button>
+                <span id="resend-timer" class="hidden font-bold ml-1 text-brand-blue bg-blue-50 px-3 py-1 rounded-full text-xs"></span>
             </p>
         </div>
 
-        <div class="mt-6 text-center"><a href="index.php" class="text-gray-400 text-sm font-semibold hover:text-brand-blue transition"><i class="fa-solid fa-arrow-left mr-1"></i>Back to Home</a></div>
+        <div class="mt-auto pt-8 text-center"><a href="index.php" class="text-gray-400 text-sm font-semibold hover:text-brand-blue transition"><i class="fa-solid fa-house mr-1"></i> Back to Home</a></div>
     </div>
 </div>
 
@@ -255,11 +209,6 @@ function showPanel(id) {
     const el = document.getElementById(id);
     el.classList.add('active','fade-up');
 }
-function setMode(m) {
-    document.getElementById('tab-email').classList.toggle('active', m==='email');
-    document.getElementById('tab-phone').classList.toggle('active', m==='phone');
-    showPanel(m==='email' ? 'panel-email' : 'panel-phone-enter');
-}
 
 /* ── Loading state ── */
 function setBtn(id, loading, html='') {
@@ -269,57 +218,29 @@ function setBtn(id, loading, html='') {
     if (loading) b.innerHTML = '<i class="fa-solid fa-circle-notch spin mr-2"></i>Please wait...';
 }
 
-/* ── Password toggle ── */
-function togglePw() {
-    const i = document.getElementById('em-pw');
-    const e = document.getElementById('pw-eye');
-    i.type = i.type==='password' ? 'text' : 'password';
-    e.className = 'fa-solid ' + (i.type==='password' ? 'fa-eye-slash' : 'fa-eye');
-}
-
-/* ── Email Login ── */
-async function doEmailLogin() {
-    const email = document.getElementById('em-email').value.trim();
-    const pw    = document.getElementById('em-pw').value.trim();
-    if (!email) { toast('error','Enter your email.'); return; }
-    if (!pw)    { toast('error','Enter your password.'); return; }
-
-    setBtn('btn-email-login', true);
-    const fd = new FormData();
-    fd.append('action','email_login');
-    fd.append('email', email);
-    fd.append('password', pw);
-    fd.append('redirect', REDIRECT);
-
-    const r = await fetch('login.php', {method:'POST', body:fd});
-    const d = await r.json();
-    if (d.ok) {
-        toast('success', `Welcome back, ${d.name}! 🎉`);
-        setTimeout(()=> window.location.href = d.redirect || 'rides.php', 900);
-    } else {
-        toast('error', d.msg || 'Login failed.');
-        setBtn('btn-email-login', false, 'Sign In <i class="fa-solid fa-arrow-right ml-2"></i>');
-    }
-}
-
 /* ── Send Phone OTP ── */
 async function doSendOtp() {
     const ph = document.getElementById('ph-num').value.trim();
     if (ph.length!==10) { toast('error','Enter a valid 10-digit number.'); return; }
 
     setBtn('btn-send-otp', true);
-    const r = await fetch(`login.php?action=send_otp&mobile=${ph}`);
-    const d = await r.json();
-    setBtn('btn-send-otp', false, 'Send OTP <i class="fa-solid fa-paper-plane ml-2"></i>');
+    try {
+        const r = await fetch(`login.php?action=send_otp&mobile=${ph}`);
+        const d = await r.json();
+        setBtn('btn-send-otp', false, 'Continue with Mobile <i class="fa-solid fa-arrow-right ml-2"></i>');
 
-    if (d.ok) {
-        document.getElementById('otp-ph-disp').textContent = '+91 ' + ph;
-        showPanel('panel-phone-otp');
-        document.querySelector('#otp-boxes .otp-box').focus();
-        startTimer();
-        toast('success', d.msg);
-    } else {
-        toast('error', d.msg);
+        if (d.ok) {
+            document.getElementById('otp-ph-disp').textContent = '+91 ' + ph;
+            showPanel('panel-phone-otp');
+            document.querySelector('#otp-boxes .otp-box').focus();
+            startTimer();
+            toast('success', d.msg);
+        } else {
+            toast('error', d.msg);
+        }
+    } catch(e) {
+        setBtn('btn-send-otp', false, 'Continue with Mobile <i class="fa-solid fa-arrow-right ml-2"></i>');
+        toast('error', 'Network error. Please try again.');
     }
 }
 
@@ -334,16 +255,21 @@ async function doVerifyOtp() {
     fd.append('otp', otp);
     fd.append('redirect', REDIRECT);
 
-    const r = await fetch('login.php', {method:'POST', body:fd});
-    const d = await r.json();
-    if (d.ok) {
-        toast('success', `Welcome, ${d.name}! 🎉`);
-        setTimeout(()=> window.location.href = d.redirect || 'rides.php', 900);
-    } else {
-        toast('error', d.msg);
-        document.querySelectorAll('#otp-boxes .otp-box').forEach(i=>{ i.value=''; i.style.borderColor='#ef4444'; });
-        setTimeout(()=> document.querySelectorAll('#otp-boxes .otp-box').forEach(i=>{ i.style.borderColor=''; }), 1200);
+    try {
+        const r = await fetch('login.php', {method:'POST', body:fd});
+        const d = await r.json();
+        if (d.ok) {
+            toast('success', `Welcome, ${d.name}! 🎉`);
+            setTimeout(()=> window.location.href = d.redirect || 'rides.php', 900);
+        } else {
+            toast('error', d.msg);
+            document.querySelectorAll('#otp-boxes .otp-box').forEach(i=>{ i.value=''; i.style.borderColor='#ef4444'; });
+            setTimeout(()=> document.querySelectorAll('#otp-boxes .otp-box').forEach(i=>{ i.style.borderColor=''; }), 1200);
+            setBtn('btn-verify-otp', false, 'Verify & Login <i class="fa-solid fa-check ml-2"></i>');
+        }
+    } catch(e) {
         setBtn('btn-verify-otp', false, 'Verify & Login <i class="fa-solid fa-check ml-2"></i>');
+        toast('error', 'Network error. Please try again.');
     }
 }
 
@@ -372,7 +298,7 @@ function startTimer() {
     clearInterval(timerInterval);
     timerInterval = setInterval(()=>{
         s--;
-        tmr.textContent = `Resend in ${s}s`;
+        tmr.textContent = `00:${s.toString().padStart(2,'0')}`;
         if (s<=0) { clearInterval(timerInterval); tmr.classList.add('hidden'); btn.classList.remove('hidden'); }
     }, 1000);
 }
