@@ -40,47 +40,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $enteredOtp = trim($_POST['otp'] ?? '');
         $reqId      = $_SESSION['email_otp_requestid'] ?? '';
         $savedEmail = $_SESSION['email_otp_email'] ?? '';
-        // requestid format: GREENCAR{6-digit-otp}{ddMMyyyy}
-        $realOtp = substr($reqId, 8, 6); // skip 'GREENCAR', take 6 digits
+        $realOtp    = substr($reqId, 8, 6);
         if ($enteredOtp === $realOtp && !empty($realOtp)) {
-            // ── CRITICAL: Fetch current profile FIRST so we don't wipe any existing fields ──
-            $current = ProfileService::getUserProfile($phone);
-            // Build full payload with ALL existing fields merged
+            $current  = ProfileService::getUserProfile($phone);
             $saveResp = ProfileService::updateProfile([
                 'userId'                  => $userId,
                 'phoneNumber'             => $phone,
-                'name'                    => $current['name']             ?? '',
-                'gender'                  => $current['gender']           ?? '',
-                'personalEmail'           => $savedEmail,  // the newly verified email
-                'officialEmail'           => $current['officialEmail']    ?? '',
-                'altPhone'                => $current['altPhone']         ?? '',
-                'organisation'            => $current['organisation']     ?? '',
-                'homeAddress'             => $current['homeAddress']      ?? '',
-                'officeAddress'           => $current['officeAddress']    ?? '',
-                'carModel'                => $current['carModel']         ?? '',
-                'carNumber'               => $current['carNumber']        ?? '',
-                'carColor'                => $current['carColor']         ?? '',
-                'linkedin'                => $current['linkedin']         ?? '',
-                'instagram'               => $current['instagram']        ?? '',
-                'facebook'                => $current['facebook']         ?? '',
-                // Preserve existing image — try every possible field name the API returns
-                'profileImageUrl'         => $current['profileImageUrl']
-                                          ?? $current['photoPath']
-                                          ?? $current['profilePicturePath']
-                                          ?? $current['photo']
-                                          ?? '',
-                'isPersonalEmailVerified' => true,   // ← this is what we're setting
-                'isOfficialEmailVerified' => $current['isOfficialEmailVerified'] ?? false,
+                'name'                    => $current['name']                        ?? '',
+                'gender'                  => $current['gender']                      ?? '',
+                'personalEmail'           => $savedEmail,
+                'officialEmail'           => $current['officialEmail']               ?? '',
+                'altPhone'                => $current['altPhone']                    ?? '',
+                'organisation'            => $current['organisation']                ?? '',
+                'homeAddress'             => $current['homeAddress']                 ?? '',
+                'officeAddress'           => $current['officeAddress']               ?? '',
+                'carModel'                => $current['carModel']                    ?? '',
+                'carNumber'               => $current['carNumber']                   ?? '',
+                'carColor'                => $current['carColor']                    ?? '',
+                'linkedin'                => $current['linkedin']                    ?? '',
+                'instagram'               => $current['instagram']                   ?? '',
+                'facebook'                => $current['facebook']                    ?? '',
+                'profileImageUrl'         => $current['profileImageUrl'] ?? $current['photoPath'] ?? $current['photo'] ?? '',
+                'isPersonalEmailVerified' => true,
+                'isOfficialEmailVerified' => $current['isOfficialEmailVerified']     ?? false,
                 'IsProfileUpdate'         => 1,
             ]);
             unset($_SESSION['email_otp_requestid'], $_SESSION['email_otp_email']);
-            // Update session so page reload reflects verified state
             $_SESSION['user']['personalEmail']           = $savedEmail;
             $_SESSION['user']['isPersonalEmailVerified'] = true;
-            echo json_encode(['success' => true, 'message' => 'Email verified successfully!']);
+            echo json_encode(['success' => true, 'message' => 'Personal email verified!']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Wrong OTP. Please try again.']);
         }
+        exit;
+    }
+    // ── Official Email OTP verify ──
+    if ($_POST['action'] === 'verify_official_email_otp') {
+        header('Content-Type: application/json');
+        $enteredOtp = trim($_POST['otp'] ?? '');
+        $reqId      = $_SESSION['official_email_otp_requestid'] ?? '';
+        $savedEmail = $_SESSION['official_email_otp_email']     ?? '';
+        $realOtp    = substr($reqId, 8, 6);
+        if ($enteredOtp === $realOtp && !empty($realOtp)) {
+            $current  = ProfileService::getUserProfile($phone);
+            $saveResp = ProfileService::updateProfile([
+                'userId'                  => $userId,
+                'phoneNumber'             => $phone,
+                'name'                    => $current['name']                        ?? '',
+                'gender'                  => $current['gender']                      ?? '',
+                'personalEmail'           => $current['personalEmail'] ?? $current['email'] ?? '',
+                'officialEmail'           => $savedEmail,   // newly verified official email
+                'altPhone'                => $current['altPhone']                    ?? '',
+                'organisation'            => $current['organisation']                ?? '',
+                'homeAddress'             => $current['homeAddress']                 ?? '',
+                'officeAddress'           => $current['officeAddress']               ?? '',
+                'carModel'                => $current['carModel']                    ?? '',
+                'carNumber'               => $current['carNumber']                   ?? '',
+                'carColor'                => $current['carColor']                    ?? '',
+                'linkedin'                => $current['linkedin']                    ?? '',
+                'instagram'               => $current['instagram']                   ?? '',
+                'facebook'                => $current['facebook']                    ?? '',
+                'profileImageUrl'         => $current['profileImageUrl'] ?? $current['photoPath'] ?? $current['photo'] ?? '',
+                'isPersonalEmailVerified' => $current['isPersonalEmailVerified']     ?? false,
+                'isOfficialEmailVerified' => true,   // ← this is what we're setting
+                'IsProfileUpdate'         => 1,
+            ]);
+            unset($_SESSION['official_email_otp_requestid'], $_SESSION['official_email_otp_email']);
+            $_SESSION['user']['officialEmail']           = $savedEmail;
+            $_SESSION['user']['isOfficialEmailVerified'] = true;
+            echo json_encode(['success' => true, 'message' => 'Official email verified!']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Wrong OTP. Please try again.']);
+        }
+        exit;
+    }
+    // ── Send Official Email OTP ──
+    if ($_POST['action'] === 'send_official_email_otp') {
+        header('Content-Type: application/json');
+        $emailToVerify = trim($_POST['email'] ?? '');
+        if (empty($emailToVerify) || !filter_var($emailToVerify, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['status' => 'fails', 'message' => 'Invalid email address']);
+            exit;
+        }
+        $resp = ApiService::post('App/SendOTPOnEmail', ['Email' => $emailToVerify]);
+        if (!empty($resp['requestid'])) {
+            $_SESSION['official_email_otp_requestid'] = $resp['requestid'];
+            $_SESSION['official_email_otp_email']     = $emailToVerify;
+        }
+        echo json_encode($resp ?: ['status' => 'fails', 'message' => 'API error']);
         exit;
     }
 }
@@ -371,6 +418,17 @@ textarea.field {min-height: 80px; resize: none;}
               <button type="button" class="ml-1 bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">Verify</button>
           </div>
           <?php endif; ?>
+          <!-- Official Email Badge -->
+          <?php if($isOfficialEmailVerified): ?>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700">
+              <i class="fa-solid fa-building"></i> <span class="text-xs font-bold">Work Email ✔️</span>
+          </div>
+          <?php elseif(!empty($officialEmail)): ?>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition cursor-pointer" onclick="sendOfficialEmailOtpInline()">
+              <i class="fa-solid fa-building"></i> <span class="text-xs font-bold">Work Email ⏳</span>
+              <button type="button" class="ml-1 bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">Verify</button>
+          </div>
+          <?php endif; ?>
           <!-- Aadhaar -->
           <?php if($isAadharVerified): ?>
           <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700">
@@ -446,10 +504,46 @@ textarea.field {min-height: 80px; resize: none;}
                            </div>
                            <p id="emailOtpMsg" class="text-xs mt-1 font-semibold hidden"></p>
                        </div>
-                      <div class="field-wrap">
-                          <label class="flex justify-between">Official Email <?= $isOfficialEmailVerified ? '<i class="fa-solid fa-check text-green-500"></i>' : '' ?></label>
-                          <input type="email" class="field" value="<?= $officialEmail ?>" readonly>
-                      </div>
+                      <div class="field-wrap sm:col-span-2">
+                           <label class="flex justify-between items-center">
+                               Official / Work Email
+                               <?php if($isOfficialEmailVerified): ?>
+                               <span class="text-green-600 text-[11px] font-black flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Verified</span>
+                               <?php elseif(!empty($officialEmail)): ?>
+                               <span class="text-orange-500 text-[11px] font-semibold">Not Verified</span>
+                               <?php else: ?>
+                               <span class="text-gray-400 text-[11px] font-semibold">Optional</span>
+                               <?php endif; ?>
+                           </label>
+                           <div class="flex gap-2">
+                               <input type="email" name="OfficialEmail" id="officialEmailInput"
+                                   class="field flex-1" value="<?= $officialEmail ?>"
+                                   placeholder="yourname@company.com">
+                               <?php if(!$isOfficialEmailVerified): ?>
+                               <button type="button" id="btnSendOfficialOtp"
+                                   onclick="sendOfficialEmailOtpInline()"
+                                   class="shrink-0 bg-brand-blue text-white px-3 py-2 rounded-xl text-xs font-black hover:bg-blue-900 transition whitespace-nowrap">
+                                   <i class="fa-solid fa-paper-plane mr-1"></i>Send OTP
+                               </button>
+                               <?php else: ?>
+                               <button type="button"
+                                   onclick="sendOfficialEmailOtpInline()"
+                                   class="shrink-0 bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-200 transition whitespace-nowrap">
+                                   <i class="fa-solid fa-rotate-right mr-1"></i>Re-verify
+                               </button>
+                               <?php endif; ?>
+                           </div>
+                           <div id="officialOtpRow" class="hidden mt-2 flex gap-2 items-center">
+                               <input type="text" id="inlineOfficialOtp" maxlength="6"
+                                   class="field flex-1 text-center tracking-widest text-lg font-black"
+                                   placeholder="Enter 6-digit OTP">
+                               <button type="button" onclick="verifyOfficialEmailOtpInline()"
+                                   class="shrink-0 bg-brand-green text-white px-4 py-2 rounded-xl text-xs font-black hover:bg-green-700 transition">
+                                   <i class="fa-solid fa-check mr-1"></i>Verify
+                               </button>
+                           </div>
+                           <p id="officialOtpMsg" class="text-xs mt-1 font-semibold hidden"></p>
+                       </div>
                       <div class="field-wrap"><label>Mobile Number</label><input type="text" class="field bg-gray-100 text-gray-500" value="<?= $mobileNumber ?>" readonly></div>
                       <div class="field-wrap"><label>Alternate Phone</label><input type="text" name="AlternatePhone" class="field" value="<?= $altPhone ?>"></div>
                   </div>
@@ -1180,6 +1274,69 @@ function showEmailMsg(msg, color) {
 function openEmailVerifyModal() { sendEmailOtpInline(); }
 function closeEmailModal() { document.getElementById('emailModal')?.classList.add('hidden'); }
 async function verifyEmailOTP() { verifyEmailOtpInline(); }
+
+// ── OFFICIAL EMAIL OTP FLOW ──────────────────────────────────────────────────
+async function sendOfficialEmailOtpInline() {
+    const email = document.getElementById('officialEmailInput')?.value.trim();
+    if (!email || !email.includes('@')) {
+        toast('error', 'Please enter a valid official email first'); return;
+    }
+    const btn = document.getElementById('btnSendOfficialOtp');
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Sending...'; }
+
+    const fd = new URLSearchParams();
+    fd.append('action', 'send_official_email_otp');
+    fd.append('email', email);
+    try {
+        const res  = await fetch('profile.php', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.requestid || data.status === 'ok') {
+            document.getElementById('officialOtpRow').classList.remove('hidden');
+            document.getElementById('inlineOfficialOtp').focus();
+            showOfficialEmailMsg('OTP sent to ' + email + '. Check your inbox.', 'green');
+            toast('success', '✉️ OTP sent to ' + email);
+        } else {
+            showOfficialEmailMsg('Failed to send OTP. Try again.', 'red');
+            toast('error', 'Failed to send OTP');
+        }
+    } catch(e) {
+        showOfficialEmailMsg('Network error. Try again.', 'red');
+        toast('error', 'Network error');
+    } finally {
+        if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i>Send OTP'; }
+    }
+}
+
+async function verifyOfficialEmailOtpInline() {
+    const otp = document.getElementById('inlineOfficialOtp').value.trim();
+    if (otp.length < 6) { showOfficialEmailMsg('Enter the 6-digit OTP', 'red'); return; }
+
+    const fd = new URLSearchParams();
+    fd.append('action', 'verify_official_email_otp');
+    fd.append('otp', otp);
+    try {
+        const res  = await fetch('profile.php', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) {
+            showOfficialEmailMsg('✅ ' + data.message, 'green');
+            toast('success', '✅ Official Email Verified!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showOfficialEmailMsg('❌ ' + (data.message || 'Wrong OTP'), 'red');
+            toast('error', data.message || 'Wrong OTP');
+        }
+    } catch(e) {
+        showOfficialEmailMsg('Network error. Try again.', 'red');
+    }
+}
+
+function showOfficialEmailMsg(msg, color) {
+    const el = document.getElementById('officialOtpMsg');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `text-xs mt-1 font-semibold text-${color}-600`;
+    el.classList.remove('hidden');
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     // Open Personal Info by default
