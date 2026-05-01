@@ -20,9 +20,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     if ($_POST['action'] === 'send_email_otp') {
         header('Content-Type: application/json');
-        // Fallback to true if API fails, just for UX demonstration if endpoint is mismatched
-        $resp = ApiService::post('App/SendOTPOnEmail', ['EmailId' => trim($_POST['email']), 'UserId' => $userId]);
-        echo json_encode($resp ?: ['status' => 1, 'message' => 'OTP Sent successfully']);
+        $emailToVerify = trim($_POST['email'] ?? '');
+        if (empty($emailToVerify) || !filter_var($emailToVerify, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['status' => 'fails', 'message' => 'Invalid email address']);
+            exit;
+        }
+        // API model field is 'Email' (NOT 'EmailId') — must match SendEmailOtp record
+        $resp = ApiService::post('App/SendOTPOnEmail', ['Email' => $emailToVerify]);
+        if (!empty($resp['requestid'])) {
+            // Store in session: requestid = "GREENCAR{6-digit-OTP}{ddMMyyyy}"
+            $_SESSION['email_otp_requestid'] = $resp['requestid'];
+            $_SESSION['email_otp_email']     = $emailToVerify;
+        }
+        echo json_encode($resp ?: ['status' => 'fails', 'message' => 'API error']);
+        exit;
+    }
+    if ($_POST['action'] === 'verify_email_otp') {
+        header('Content-Type: application/json');
+        $enteredOtp = trim($_POST['otp'] ?? '');
+        $reqId      = $_SESSION['email_otp_requestid'] ?? '';
+        $savedEmail = $_SESSION['email_otp_email'] ?? '';
+        // requestid format: GREENCAR{6-digit-otp}{ddMMyyyy}
+        // Extract OTP: chars 7..12 (0-indexed after 'GREENCAR')
+        $realOtp = substr($reqId, 8, 6); // skip 'GREENCAR', take 6 digits
+        if ($enteredOtp === $realOtp && !empty($realOtp)) {
+            // Mark email verified by saving to profile
+            $saveResp = ProfileService::updateProfile([
+                'userId'                  => $userId,
+                'phoneNumber'             => $phone,
+                'personalEmail'           => $savedEmail,
+                'isPersonalEmailVerified' => true,
+                'IsProfileUpdate'         => 1,
+            ]);
+            unset($_SESSION['email_otp_requestid'], $_SESSION['email_otp_email']);
+            echo json_encode(['success' => true, 'message' => 'Email verified successfully!']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Wrong OTP. Please try again.']);
+        }
         exit;
     }
 }
@@ -30,28 +64,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Handle Profile Save
 $toast = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_profile') {
+    // Use exact same field names as Flutter app's _buildProfilePayload()
     $updateData = [
-        'UserId' => $userId,
-        'Name' => trim($_POST['Name'] ?? ''),
-        'Gender' => trim($_POST['Gender'] ?? ''),
-        'Email' => trim($_POST['Email'] ?? ''),
-        'PhoneNumber' => $phone,
-        'mobile_no' => $phone,
-        'AlternatePhone' => trim($_POST['AlternatePhone'] ?? ''),
-        'CompanyName' => trim($_POST['CompanyName'] ?? ''),
-        'HomeAddress' => trim($_POST['HomeAddress'] ?? ''),
-        'OfficeAddress' => trim($_POST['OfficeAddress'] ?? ''),
-        'CarModel' => trim($_POST['CarModel'] ?? ''),
-        'CarNumber' => trim($_POST['CarNumber'] ?? ''),
-        'CarColor' => trim($_POST['CarColor'] ?? ''),
-        'Linkedin' => trim($_POST['Linkedin'] ?? ''),
-        'Instagram' => trim($_POST['Instagram'] ?? ''),
-        'Facebook' => trim($_POST['Facebook'] ?? ''),
-        'ProfileImageUrl' => trim($_POST['ProfileImageUrl'] ?? '')
+        'userId'                  => $userId,
+        'name'                    => trim($_POST['Name'] ?? ''),
+        'gender'                  => trim($_POST['Gender'] ?? ''),
+        'personalEmail'           => trim($_POST['Email'] ?? ''),
+        'phoneNumber'             => $phone,
+        'altPhone'                => trim($_POST['AlternatePhone'] ?? ''),
+        'organisation'            => trim($_POST['CompanyName'] ?? ''),
+        'homeAddress'             => trim($_POST['HomeAddress'] ?? ''),
+        'officeAddress'           => trim($_POST['OfficeAddress'] ?? ''),
+        'carModel'                => trim($_POST['CarModel'] ?? ''),
+        'carNumber'               => trim($_POST['CarNumber'] ?? ''),
+        'carColor'                => trim($_POST['CarColor'] ?? ''),
+        'linkedin'                => trim($_POST['Linkedin'] ?? ''),
+        'instagram'               => trim($_POST['Instagram'] ?? ''),
+        'facebook'                => trim($_POST['Facebook'] ?? ''),
+        'profileImageUrl'         => trim($_POST['ProfileImageUrl'] ?? ''),
+        'IsProfileUpdate'         => 1,   // tells API not to re-send welcome email
+        'isPersonalEmailVerified' => $isPersonalEmailVerified ?? false,
+        'isOfficialEmailVerified' => $isOfficialEmailVerified ?? false,
     ];
     $updateResp = ProfileService::updateProfile($updateData);
-    if (isset($updateResp['status']) && $updateResp['status'] === 1) {
+    // API returns the user object on success (status field may not exist)
+    if (!empty($updateResp) && !isset($updateResp['__curl_error']) && !isset($updateResp['__raw'])) {
         $toast = ['type' => 'success', 'msg' => 'Profile updated successfully!'];
+        // Refresh session
+        $_SESSION['user'] = array_merge($_SESSION['user'] ?? [], $updateData);
     } else {
         $toast = ['type' => 'error', 'msg' => $updateResp['message'] ?? 'Failed to update profile.'];
     }
@@ -246,7 +286,12 @@ textarea.field {min-height: 80px; resize: none;}
     <div class="card p-1.5 flex gap-1 overflow-x-auto mb-5" style="border-radius:999px;">
       <button class="tab-btn <?= $tab==='profile'?'active':'' ?>" id="tb-profile" onclick="switchTab('profile')"><i class="fa-solid fa-user-pen mr-1.5"></i>Profile</button>
       <button class="tab-btn <?= $tab==='rides'?'active':'' ?>" id="tb-rides" onclick="switchTab('rides')"><i class="fa-solid fa-car-side mr-1.5"></i>My Rides</button>
-      <button class="tab-btn <?= $tab==='requests'?'active':'' ?>" id="tb-requests" onclick="switchTab('requests')"><i class="fa-solid fa-paper-plane mr-1.5"></i>Requests</button>
+      <button class="tab-btn relative <?= $tab==='inbox'?'active':'' ?>" id="tb-inbox" onclick="switchTab('inbox')">
+        <i class="fa-solid fa-inbox mr-1.5"></i>Inbox
+        <?php $inboxCount = count($pendingRequests); if($inboxCount > 0): ?>
+        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center"><?= $inboxCount ?></span>
+        <?php endif; ?>
+      </button>
       <button class="tab-btn <?= $tab==='connections'?'active':'' ?>" id="tb-connections" onclick="switchTab('connections')"><i class="fa-solid fa-people-arrows mr-1.5"></i>Connections</button>
     </div>
 
@@ -259,17 +304,35 @@ textarea.field {min-height: 80px; resize: none;}
       
       <!-- Verifications UI -->
       <div class="flex flex-wrap items-center gap-2 mb-4 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+          <!-- Mobile: always verified -->
           <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700">
               <i class="fa-solid fa-mobile-screen"></i> <span class="text-xs font-bold">Mobile ✔️</span>
           </div>
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg <?= $isPersonalEmailVerified ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700 hover:bg-orange-100 transition' ?>" <?= !$isPersonalEmailVerified ? 'onclick="openEmailVerifyModal()"' : '' ?> style="<?= !$isPersonalEmailVerified ? 'cursor:pointer' : '' ?>">
-              <i class="fa-solid fa-envelope"></i> <span class="text-xs font-bold">Email <?= $isPersonalEmailVerified?'✔️':'⏳ Verify' ?></span>
+          <!-- Email: show Verify button ONLY when not verified -->
+          <?php if($isPersonalEmailVerified): ?>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700">
+              <i class="fa-solid fa-envelope"></i> <span class="text-xs font-bold">Email ✔️</span>
           </div>
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg <?= $isAadharVerified ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700 hover:bg-orange-100 transition' ?>" <?= !$isAadharVerified ? 'onclick="openAadhaarVerifyModal()"' : '' ?> style="<?= !$isAadharVerified ? 'cursor:pointer' : '' ?>">
-              <i class="fa-solid fa-fingerprint"></i> <span class="text-xs font-bold">Aadhaar <?= $isAadharVerified?'✔️':'⏳ Verify' ?></span>
+          <?php else: ?>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition cursor-pointer" onclick="openEmailVerifyModal()">
+              <i class="fa-solid fa-envelope"></i> <span class="text-xs font-bold">Email ⏳</span>
+              <button type="button" class="ml-1 bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">Verify</button>
           </div>
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg <?= $isPanVerified ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700' ?>">
-              <i class="fa-solid fa-id-card"></i> <span class="text-xs font-bold">PAN <?= $isPanVerified?'✔️':'⏳' ?></span>
+          <?php endif; ?>
+          <!-- Aadhaar -->
+          <?php if($isAadharVerified): ?>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700">
+              <i class="fa-solid fa-fingerprint"></i> <span class="text-xs font-bold">Aadhaar ✔️</span>
+          </div>
+          <?php else: ?>
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition cursor-pointer" onclick="openAadhaarVerifyModal()">
+              <i class="fa-solid fa-fingerprint"></i> <span class="text-xs font-bold">Aadhaar ⏳</span>
+              <button type="button" class="ml-1 bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">Verify</button>
+          </div>
+          <?php endif; ?>
+          <!-- PAN -->
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg <?= $isPanVerified ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-500' ?>">
+              <i class="fa-solid fa-id-card"></i> <span class="text-xs font-bold">PAN <?= $isPanVerified?'✔️':'—' ?></span>
           </div>
       </div>
 
@@ -294,10 +357,43 @@ textarea.field {min-height: 80px; resize: none;}
                               <option <?= $gender==='Other'?'selected':'' ?>>Other</option>
                           </select>
                       </div>
-                      <div class="field-wrap">
-                          <label class="flex justify-between">Personal Email <?= $isPersonalEmailVerified ? '<i class="fa-solid fa-check text-green-500"></i>' : '' ?></label>
-                          <input type="email" name="Email" id="profileEmail" class="field" value="<?= $email ?>">
-                      </div>
+                       <div class="field-wrap sm:col-span-2">
+                           <label class="flex justify-between items-center">
+                               Personal Email
+                               <?php if($isPersonalEmailVerified): ?>
+                               <span class="text-green-600 text-[11px] font-black flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Verified</span>
+                               <?php else: ?>
+                               <span class="text-orange-500 text-[11px] font-semibold">Not Verified</span>
+                               <?php endif; ?>
+                           </label>
+                           <div class="flex gap-2">
+                               <input type="email" name="Email" id="profileEmail" class="field flex-1" value="<?= $email ?>" placeholder="Enter your email">
+                               <?php if(!$isPersonalEmailVerified): ?>
+                               <button type="button" id="btnSendEmailOtp"
+                                   onclick="sendEmailOtpInline()"
+                                   class="shrink-0 bg-brand-green text-white px-3 py-2 rounded-xl text-xs font-black hover:bg-green-700 transition whitespace-nowrap">
+                                   <i class="fa-solid fa-paper-plane mr-1"></i>Send OTP
+                               </button>
+                               <?php else: ?>
+                               <button type="button"
+                                   onclick="sendEmailOtpInline()"
+                                   class="shrink-0 bg-gray-100 text-gray-500 px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-200 transition whitespace-nowrap">
+                                   <i class="fa-solid fa-rotate-right mr-1"></i>Re-verify
+                               </button>
+                               <?php endif; ?>
+                           </div>
+                           <!-- OTP Row: hidden initially, shown after Send OTP -->
+                           <div id="emailOtpRow" class="hidden mt-2 flex gap-2 items-center">
+                               <input type="text" id="inlineEmailOtp" maxlength="6"
+                                   class="field flex-1 text-center tracking-widest text-lg font-black"
+                                   placeholder="Enter 6-digit OTP">
+                               <button type="button" onclick="verifyEmailOtpInline()"
+                                   class="shrink-0 bg-brand-blue text-white px-4 py-2 rounded-xl text-xs font-black hover:bg-blue-900 transition">
+                                   <i class="fa-solid fa-check mr-1"></i>Verify
+                               </button>
+                           </div>
+                           <p id="emailOtpMsg" class="text-xs mt-1 font-semibold hidden"></p>
+                       </div>
                       <div class="field-wrap">
                           <label class="flex justify-between">Official Email <?= $isOfficialEmailVerified ? '<i class="fa-solid fa-check text-green-500"></i>' : '' ?></label>
                           <input type="email" class="field" value="<?= $officialEmail ?>" readonly>
@@ -428,59 +524,69 @@ textarea.field {min-height: 80px; resize: none;}
       <?php endforeach; ?>
     </div>
 
-    <!-- 3. REQUESTS (Pending) -->
-    <div class="panel <?= $tab==='requests'?'active':'' ?> fade-up" id="panel-requests">
-      <p class="font-black text-brand-blue text-lg mb-4">Pending Requests</p>
-      
-      <?php if(empty($pendingRequests)): ?>
-          <div class="text-center py-10">
-              <i class="fa-solid fa-paper-plane text-gray-300 text-5xl mb-3"></i>
-              <p class="text-gray-500 font-bold">No pending requests.</p>
+    <!-- 3. INBOX (Incoming ride requests to me) -->
+    <div class="panel <?= $tab==='inbox'?'active':'' ?> fade-up" id="panel-inbox">
+      <div class="flex justify-between items-center mb-4">
+        <p class="font-black text-brand-blue text-lg">Inbox <span class="text-sm text-gray-400 font-semibold">— Ride Requests For You</span></p>
+        <?php $inboxOnly = array_filter($pendingRequests, fn($r) => $r['_type'] === 'inbox'); ?>
+      </div>
+
+      <?php $inboxOnly = array_values(array_filter($pendingRequests, fn($r) => $r['_type'] === 'inbox')); ?>
+      <?php if(empty($inboxOnly)): ?>
+          <div class="text-center py-14">
+              <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i class="fa-solid fa-inbox text-brand-blue text-3xl"></i>
+              </div>
+              <p class="text-gray-700 font-black text-lg">No ride requests yet</p>
+              <p class="text-gray-400 text-sm mt-1">When someone requests to join your ride, it will appear here.</p>
           </div>
       <?php else: ?>
           <div class="space-y-4">
-              <?php foreach($pendingRequests as $r): 
-                  $isInbox = $r['_type'] === 'inbox';
-                  $peerName = h($r['name'] ?? ($isInbox ? ($r['SenderName'] ?? 'User') : ($r['ReceiverName'] ?? 'User')));
-              ?>
-              <div class="card shadow-sm conn-card <?= $isInbox ? 'conn-pending' : 'conn-sent' ?>">
-                  <div class="p-4 border-b border-gray-100/50 flex items-center gap-4">
-                      <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-xl font-black text-brand-blue shadow-sm border border-gray-100">
-                          <?= strtoupper(substr($peerName,0,1)) ?>
-                      </div>
-                      <div class="flex-1">
-                          <p class="font-black text-gray-900 text-lg leading-tight"><?= $peerName ?></p>
-                          <p class="text-[11px] text-gray-500 font-bold mt-1"><?= $isInbox ? 'Requested to join your ride' : 'You requested to join' ?></p>
-                      </div>
-                      <span class="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase">Pending Approval</span>
+          <?php foreach($inboxOnly as $r):
+              $rReqId   = $r['rideRequestID'] ?? $r['id'] ?? 0;
+              $rRideId  = $r['rideID'] ?? $r['RideID'] ?? 0;
+              $peerName = h($r['SenderName'] ?? $r['name'] ?? 'User');
+              $peerPic  = !empty($r['senderPhoto']) ? h($r['senderPhoto']) : 'https://ui-avatars.com/api/?name='.urlencode($peerName).'&background=1d3a70&color=fff';
+              $rDate    = h($r['ride_Date'] ?? $r['rideDate'] ?? '');
+          ?>
+          <div class="card shadow-sm border-l-4 border-l-brand-orange bg-orange-50/30">
+              <div class="p-4 flex items-center gap-4">
+                  <img src="<?= $peerPic ?>" class="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=U&background=1d3a70&color=fff'">
+                  <div class="flex-1 min-w-0">
+                      <p class="font-black text-brand-blue text-base leading-tight"><?= $peerName ?></p>
+                      <p class="text-[11px] text-orange-600 font-bold mt-0.5">Wants to join your ride</p>
+                      <?php if($rDate): ?>
+                      <p class="text-[11px] text-gray-400 font-semibold mt-0.5"><?= formatRideDate($rDate) ?></p>
+                      <?php endif; ?>
                   </div>
-                  
-                  <div class="p-4 bg-gray-50 flex items-center gap-3">
-                      <div class="flex flex-col items-center">
-                          <div class="w-1.5 h-1.5 rounded-full bg-brand-green"></div>
-                          <div class="w-px h-6 bg-gray-300 my-0.5"></div>
-                          <div class="w-1.5 h-1.5 rounded-full bg-brand-orange"></div>
-                      </div>
-                      <div class="flex-1 space-y-3">
-                          <p class="text-xs font-bold text-gray-600 leading-none truncate w-56"><?= h($r['from_Address'] ?? '') ?></p>
-                          <p class="text-xs font-bold text-gray-600 leading-none truncate w-56"><?= h($r['to_Address'] ?? '') ?></p>
-                      </div>
-                  </div>
+                  <span class="bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full text-[10px] font-black uppercase shrink-0">Pending</span>
+              </div>
 
-                  <div class="p-4 flex items-center justify-between border-t border-gray-100/50">
-                      <div class="flex items-center gap-2">
-                          <i class="fa-solid fa-phone text-gray-400 text-sm"></i>
-                          <span class="font-black text-gray-400 text-sm tracking-widest">**********</span>
-                      </div>
-                      <div class="flex gap-2">
-                          <?php if($isInbox): ?>
-                              <button class="bg-brand-green text-white px-4 py-2 rounded-lg text-xs font-black shadow-sm hover:bg-green-700 transition" onclick="alert('Accepting ride functionality to be implemented')"><i class="fa-solid fa-check mr-1"></i> Accept</button>
-                          <?php endif; ?>
-                          <button class="bg-brand-blue text-white px-4 py-2 rounded-lg text-xs font-black shadow-sm hover:bg-blue-900 transition" onclick='openViewModal(<?= json_encode($r) ?>)'><i class="fa-solid fa-eye mr-1"></i> View</button>
-                      </div>
+              <div class="px-4 pb-3 bg-gray-50/80 pt-2 flex items-start gap-3">
+                  <div class="flex flex-col items-center mt-1">
+                      <div class="w-2 h-2 rounded-full bg-brand-green"></div>
+                      <div class="w-px h-5 bg-gray-300 my-0.5"></div>
+                      <div class="w-2 h-2 rounded-full bg-brand-orange"></div>
+                  </div>
+                  <div class="flex-1">
+                      <p class="text-xs font-bold text-gray-600 truncate"><?= h($r['from_Address'] ?? '—') ?></p>
+                      <p class="text-xs font-bold text-gray-600 truncate mt-2"><?= h($r['to_Address'] ?? '—') ?></p>
                   </div>
               </div>
-              <?php endforeach; ?>
+
+              <div class="p-3 flex gap-2 border-t border-gray-100">
+                  <button onclick="acceptRequest(<?= $rReqId ?>, <?= $rRideId ?>)" class="flex-1 bg-brand-green text-white py-2.5 rounded-xl text-xs font-black hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-1.5">
+                      <i class="fa-solid fa-check"></i> Accept
+                  </button>
+                  <button onclick="rejectRequest(<?= $rReqId ?>, <?= $rRideId ?>)" class="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-xs font-black hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-1.5">
+                      <i class="fa-solid fa-xmark"></i> Decline
+                  </button>
+                  <button onclick='openViewModal(<?= json_encode($r) ?>)' class="bg-brand-blue text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-900 transition shadow-sm">
+                      <i class="fa-solid fa-eye"></i>
+                  </button>
+              </div>
+          </div>
+          <?php endforeach; ?>
           </div>
       <?php endif; ?>
     </div>
@@ -652,11 +758,38 @@ textarea.field {min-height: 80px; resize: none;}
 
 <script>
 function switchTab(name) {
-    ['rides','requests','connections','profile'].forEach(t=>{
-        document.getElementById('panel-'+t).classList.toggle('active', t===name);
-        document.getElementById('tb-'+t).classList.toggle('active', t===name);
+    ['rides','inbox','connections','profile'].forEach(t=>{
+        document.getElementById('panel-'+t)?.classList.toggle('active', t===name);
+        document.getElementById('tb-'+t)?.classList.toggle('active', t===name);
     });
     history.replaceState(null,'','profile.php?tab='+name);
+}
+
+// Accept ride request
+async function acceptRequest(reqId, rideId) {
+    if(!confirm('Accept this ride request?')) return;
+    try {
+        const res = await fetch('https://api.greencar.ngo/api/App/AcceptRideRequest', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ rideRequestID: reqId, rideID: rideId, userId: <?= $userId ?> })
+        });
+        const d = await res.json();
+        toast('success','Request Accepted! ✅');
+        setTimeout(() => location.reload(), 1200);
+    } catch(e){ toast('error','Failed to accept'); }
+}
+
+// Reject ride request
+async function rejectRequest(reqId, rideId) {
+    if(!confirm('Decline this request?')) return;
+    try {
+        const res = await fetch('https://api.greencar.ngo/api/App/RejectRideRequest', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ rideRequestID: reqId, rideID: rideId, userId: <?= $userId ?> })
+        });
+        toast('success','Request Declined');
+        setTimeout(() => location.reload(), 1200);
+    } catch(e){ toast('error','Failed to decline'); }
 }
 
 function toggleAcc(id) {
@@ -786,36 +919,77 @@ async function verifyAadhaarOTP() {
     } catch(e) { toast('error', 'Verification Failed'); }
 }
 
-// EMAIL OTP FLOW
-function openEmailVerifyModal() { 
-    const email = document.getElementById('profileEmail').value;
-    if(!email) { toast('error', 'Please enter an email first'); return; }
-    
-    document.getElementById('verifyEmailText').textContent = email;
-    document.getElementById('emailModal').classList.remove('hidden');
-    
-    // Trigger Send OTP immediately
-    const formData = new URLSearchParams();
-    formData.append('action', 'send_email_otp');
-    formData.append('email', email);
-    
-    fetch('profile.php', { method: 'POST', body: formData })
-    .then(r => r.json())
-    .then(data => { toast('success', 'OTP Sent to ' + email); })
-    .catch(e => { toast('error', 'Failed to send OTP to email'); });
-}
-function closeEmailModal() { document.getElementById('emailModal').classList.add('hidden'); }
+// ── EMAIL OTP FLOW (Inline — real API) ──────────────────────────────────────
 
-async function verifyEmailOTP() {
-    const otp = document.getElementById('emailOtpInput').value.trim();
-    if(otp.length < 4) { toast('error', 'Enter valid OTP'); return; }
-    
-    // As there is no backend VerifyEmailOTP, we mock success, or use a general verify
-    toast('success', 'Email Verified Successfully!');
-    closeEmailModal();
-    // Simulate updating backend logic for demonstration
-    setTimeout(() => window.location.reload(), 1500);
+// Step 1: User clicks "Send OTP" button next to email field
+async function sendEmailOtpInline() {
+    const email = document.getElementById('profileEmail').value.trim();
+    if (!email || !email.includes('@')) {
+        toast('error', 'Please enter a valid email address first'); return;
+    }
+    const btn = document.getElementById('btnSendEmailOtp');
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Sending...'; }
+
+    const fd = new URLSearchParams();
+    fd.append('action', 'send_email_otp');
+    fd.append('email', email);
+    try {
+        const res  = await fetch('profile.php', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.requestid || data.status === 'ok') {
+            // Show OTP input row
+            document.getElementById('emailOtpRow').classList.remove('hidden');
+            document.getElementById('inlineEmailOtp').focus();
+            showEmailMsg('OTP sent to ' + email + '. Check your inbox.', 'green');
+            toast('success', '✉️ OTP sent to ' + email);
+        } else {
+            showEmailMsg('Failed to send OTP. Try again.', 'red');
+            toast('error', 'Failed to send OTP');
+        }
+    } catch(e) {
+        showEmailMsg('Network error. Try again.', 'red');
+        toast('error', 'Network error');
+    } finally {
+        if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i>Send OTP'; }
+    }
 }
+
+// Step 2: User enters OTP and clicks "Verify"
+async function verifyEmailOtpInline() {
+    const otp = document.getElementById('inlineEmailOtp').value.trim();
+    if (otp.length < 6) { showEmailMsg('Enter the 6-digit OTP', 'red'); return; }
+
+    const fd = new URLSearchParams();
+    fd.append('action', 'verify_email_otp');
+    fd.append('otp', otp);
+    try {
+        const res  = await fetch('profile.php', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) {
+            showEmailMsg('✅ ' + data.message, 'green');
+            toast('success', '✅ Email Verified!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showEmailMsg('❌ ' + (data.message || 'Wrong OTP'), 'red');
+            toast('error', data.message || 'Wrong OTP');
+        }
+    } catch(e) {
+        showEmailMsg('Network error. Try again.', 'red'); 
+    }
+}
+
+function showEmailMsg(msg, color) {
+    const el = document.getElementById('emailOtpMsg');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `text-xs mt-1 font-semibold text-${color}-600`;
+    el.classList.remove('hidden');
+}
+
+// Legacy modal functions (kept for badge-click compatibility)
+function openEmailVerifyModal() { sendEmailOtpInline(); }
+function closeEmailModal() { document.getElementById('emailModal')?.classList.add('hidden'); }
+async function verifyEmailOTP() { verifyEmailOtpInline(); }
 
 document.addEventListener("DOMContentLoaded", () => {
     // Open Personal Info by default
