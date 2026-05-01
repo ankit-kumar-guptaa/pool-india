@@ -41,18 +41,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $reqId      = $_SESSION['email_otp_requestid'] ?? '';
         $savedEmail = $_SESSION['email_otp_email'] ?? '';
         // requestid format: GREENCAR{6-digit-otp}{ddMMyyyy}
-        // Extract OTP: chars 7..12 (0-indexed after 'GREENCAR')
         $realOtp = substr($reqId, 8, 6); // skip 'GREENCAR', take 6 digits
         if ($enteredOtp === $realOtp && !empty($realOtp)) {
-            // Mark email verified by saving to profile
+            // ── CRITICAL: Fetch current profile FIRST so we don't wipe any existing fields ──
+            $current = ProfileService::getUserProfile($phone);
+            // Build full payload with ALL existing fields merged
             $saveResp = ProfileService::updateProfile([
                 'userId'                  => $userId,
                 'phoneNumber'             => $phone,
-                'personalEmail'           => $savedEmail,
-                'isPersonalEmailVerified' => true,
+                'name'                    => $current['name']             ?? '',
+                'gender'                  => $current['gender']           ?? '',
+                'personalEmail'           => $savedEmail,  // the newly verified email
+                'officialEmail'           => $current['officialEmail']    ?? '',
+                'altPhone'                => $current['altPhone']         ?? '',
+                'organisation'            => $current['organisation']     ?? '',
+                'homeAddress'             => $current['homeAddress']      ?? '',
+                'officeAddress'           => $current['officeAddress']    ?? '',
+                'carModel'                => $current['carModel']         ?? '',
+                'carNumber'               => $current['carNumber']        ?? '',
+                'carColor'                => $current['carColor']         ?? '',
+                'linkedin'                => $current['linkedin']         ?? '',
+                'instagram'               => $current['instagram']        ?? '',
+                'facebook'                => $current['facebook']         ?? '',
+                // Preserve existing image — try every possible field name the API returns
+                'profileImageUrl'         => $current['profileImageUrl']
+                                          ?? $current['photoPath']
+                                          ?? $current['profilePicturePath']
+                                          ?? $current['photo']
+                                          ?? '',
+                'isPersonalEmailVerified' => true,   // ← this is what we're setting
+                'isOfficialEmailVerified' => $current['isOfficialEmailVerified'] ?? false,
                 'IsProfileUpdate'         => 1,
             ]);
             unset($_SESSION['email_otp_requestid'], $_SESSION['email_otp_email']);
+            // Update session so page reload reflects verified state
+            $_SESSION['user']['personalEmail']           = $savedEmail;
+            $_SESSION['user']['isPersonalEmailVerified'] = true;
             echo json_encode(['success' => true, 'message' => 'Email verified successfully!']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Wrong OTP. Please try again.']);
@@ -64,12 +88,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Handle Profile Save
 $toast = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_profile') {
-    // Use exact same field names as Flutter app's _buildProfilePayload()
+    // ── Fetch live profile first to get latest verified flags ──
+    // This prevents save from overwriting verified status with a stale PHP session value
+    $liveProfile = ProfileService::getUserProfile($phone);
+    $liveEmailVerified    = $liveProfile['isPersonalEmailVerified']  ?? false;
+    $liveOfficialVerified = $liveProfile['isOfficialEmailVerified']  ?? false;
+
+    // If the user just typed a NEW email (different from current), reset verified flag
+    $submittedEmail = trim($_POST['Email'] ?? '');
+    $currentLiveEmail = $liveProfile['personalEmail'] ?? $liveProfile['email'] ?? '';
+    if (!empty($submittedEmail) && $submittedEmail !== $currentLiveEmail) {
+        $liveEmailVerified = false; // email changed → must re-verify
+    }
+
     $updateData = [
         'userId'                  => $userId,
         'name'                    => trim($_POST['Name'] ?? ''),
         'gender'                  => trim($_POST['Gender'] ?? ''),
-        'personalEmail'           => trim($_POST['Email'] ?? ''),
+        'personalEmail'           => $submittedEmail,
         'phoneNumber'             => $phone,
         'altPhone'                => trim($_POST['AlternatePhone'] ?? ''),
         'organisation'            => trim($_POST['CompanyName'] ?? ''),
@@ -81,16 +117,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         'linkedin'                => trim($_POST['Linkedin'] ?? ''),
         'instagram'               => trim($_POST['Instagram'] ?? ''),
         'facebook'                => trim($_POST['Facebook'] ?? ''),
-        'profileImageUrl'         => trim($_POST['ProfileImageUrl'] ?? ''),
-        'IsProfileUpdate'         => 1,   // tells API not to re-send welcome email
-        'isPersonalEmailVerified' => $isPersonalEmailVerified ?? false,
-        'isOfficialEmailVerified' => $isOfficialEmailVerified ?? false,
+        // Profile image: use newly uploaded URL if present, else preserve existing from live API
+        'profileImageUrl'         => !empty(trim($_POST['ProfileImageUrl'] ?? ''))
+                                     ? trim($_POST['ProfileImageUrl'])
+                                     : ($liveProfile['profileImageUrl'] ?? $liveProfile['photoPath'] ?? $liveProfile['photo'] ?? ''),
+        'IsProfileUpdate'         => 1,
+        // Always use live API verified flags — never trust stale session values
+        'isPersonalEmailVerified' => $liveEmailVerified,
+        'isOfficialEmailVerified' => $liveOfficialVerified,
     ];
     $updateResp = ProfileService::updateProfile($updateData);
-    // API returns the user object on success (status field may not exist)
     if (!empty($updateResp) && !isset($updateResp['__curl_error']) && !isset($updateResp['__raw'])) {
         $toast = ['type' => 'success', 'msg' => 'Profile updated successfully!'];
-        // Refresh session
         $_SESSION['user'] = array_merge($_SESSION['user'] ?? [], $updateData);
     } else {
         $toast = ['type' => 'error', 'msg' => $updateResp['message'] ?? 'Failed to update profile.'];
@@ -243,6 +281,9 @@ textarea.field {min-height: 80px; resize: none;}
 .conn-accepted {border-left-color: #1b8036; background: #f0fdf4;}
 .conn-pending {border-left-color: #f3821a; background: #fffbeb;}
 .conn-sent {border-left-color: #3b82f6; background: #eff6ff;}
+/* Sub-tabs inside Responses */
+.sub-tab-btn { color:#64748b; background:transparent; transition:all .2s; }
+.sub-tab-btn.active-sub { background:#fff; color:#1d3a70; box-shadow:0 2px 8px rgba(29,58,112,.12); font-weight:900; }
 </style>
 </head>
 <body>
@@ -254,8 +295,17 @@ textarea.field {min-height: 80px; resize: none;}
     <div class="max-w-3xl mx-auto flex items-center gap-5">
       <div class="relative shrink-0">
         <label for="profilePicUpload" class="cursor-pointer block relative group">
-            <?php if(!empty($userProfile['profileImageUrl'])): ?>
-                <img id="profilePicImg" src="<?= h($userProfile['profileImageUrl']) ?>" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 transition group-hover:opacity-75">
+            <?php
+              // API may return different field names — try all
+              $profileImg = $userProfile['profileImageUrl']
+                         ?? $userProfile['photoPath']
+                         ?? $userProfile['profilePicturePath']
+                         ?? $userProfile['photo']
+                         ?? $userProfile['image']
+                         ?? '';
+            ?>
+            <?php if(!empty($profileImg)): ?>
+                <img id="profilePicImg" src="<?= h($profileImg) ?>" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 transition group-hover:opacity-75">
             <?php else: ?>
                 <div id="profilePicPlaceholder" class="w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center text-white text-3xl font-black border-4 border-white/20 transition group-hover:bg-white/30">
                   <?= strtoupper(substr($name,0,1)) ?>
@@ -286,10 +336,12 @@ textarea.field {min-height: 80px; resize: none;}
     <div class="card p-1.5 flex gap-1 overflow-x-auto mb-5" style="border-radius:999px;">
       <button class="tab-btn <?= $tab==='profile'?'active':'' ?>" id="tb-profile" onclick="switchTab('profile')"><i class="fa-solid fa-user-pen mr-1.5"></i>Profile</button>
       <button class="tab-btn <?= $tab==='rides'?'active':'' ?>" id="tb-rides" onclick="switchTab('rides')"><i class="fa-solid fa-car-side mr-1.5"></i>My Rides</button>
-      <button class="tab-btn relative <?= $tab==='inbox'?'active':'' ?>" id="tb-inbox" onclick="switchTab('inbox')">
-        <i class="fa-solid fa-inbox mr-1.5"></i>Inbox
-        <?php $inboxCount = count($pendingRequests); if($inboxCount > 0): ?>
-        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center"><?= $inboxCount ?></span>
+      <button class="tab-btn relative <?= $tab==='responses'?'active':'' ?>" id="tb-responses" onclick="switchTab('responses')">
+        <i class="fa-solid fa-comments mr-1.5"></i>Responses
+        <?php
+          $inboxOnlyCount = count(array_filter($pendingRequests, fn($r) => $r['_type'] === 'inbox'));
+          if($inboxOnlyCount > 0): ?>
+        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center"><?= $inboxOnlyCount ?></span>
         <?php endif; ?>
       </button>
       <button class="tab-btn <?= $tab==='connections'?'active':'' ?>" id="tb-connections" onclick="switchTab('connections')"><i class="fa-solid fa-people-arrows mr-1.5"></i>Connections</button>
@@ -524,72 +576,182 @@ textarea.field {min-height: 80px; resize: none;}
       <?php endforeach; ?>
     </div>
 
-    <!-- 3. INBOX (Incoming ride requests to me) -->
-    <div class="panel <?= $tab==='inbox'?'active':'' ?> fade-up" id="panel-inbox">
-      <div class="flex justify-between items-center mb-4">
-        <p class="font-black text-brand-blue text-lg">Inbox <span class="text-sm text-gray-400 font-semibold">— Ride Requests For You</span></p>
-        <?php $inboxOnly = array_filter($pendingRequests, fn($r) => $r['_type'] === 'inbox'); ?>
+    <!-- 3. RESPONSES (Inbox + My Requests) -->
+    <?php
+      $inboxOnly = array_values(array_filter($pendingRequests, fn($r) => $r['_type'] === 'inbox'));
+      $sentOnly  = array_values(array_filter($pendingRequests, fn($r) => $r['_type'] === 'sent'));
+    ?>
+    <div class="panel <?= $tab==='responses'?'active':'' ?> fade-up" id="panel-responses">
+
+      <!-- Sub-tab bar -->
+      <div class="flex gap-2 mb-5 bg-gray-100 p-1 rounded-2xl">
+        <button id="stb-inbox"
+          onclick="switchSubTab('inbox')"
+          class="sub-tab-btn flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 active-sub">
+          <i class="fa-solid fa-inbox"></i> Inbox
+          <?php if(count($inboxOnly) > 0): ?>
+          <span class="bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center"><?= count($inboxOnly) ?></span>
+          <?php endif; ?>
+        </button>
+        <button id="stb-sent"
+          onclick="switchSubTab('sent')"
+          class="sub-tab-btn flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-paper-plane"></i> My Requests
+          <?php if(count($sentOnly) > 0): ?>
+          <span class="bg-blue-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center"><?= count($sentOnly) ?></span>
+          <?php endif; ?>
+        </button>
       </div>
 
-      <?php $inboxOnly = array_values(array_filter($pendingRequests, fn($r) => $r['_type'] === 'inbox')); ?>
-      <?php if(empty($inboxOnly)): ?>
-          <div class="text-center py-14">
-              <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i class="fa-solid fa-inbox text-brand-blue text-3xl"></i>
-              </div>
-              <p class="text-gray-700 font-black text-lg">No ride requests yet</p>
-              <p class="text-gray-400 text-sm mt-1">When someone requests to join your ride, it will appear here.</p>
+      <!-- SUB-PANEL: INBOX -->
+      <div id="subpanel-inbox">
+        <?php if(empty($inboxOnly)): ?>
+        <div class="text-center py-14">
+          <div class="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-inbox text-brand-orange text-3xl"></i>
           </div>
-      <?php else: ?>
-          <div class="space-y-4">
-          <?php foreach($inboxOnly as $r):
-              $rReqId   = $r['rideRequestID'] ?? $r['id'] ?? 0;
-              $rRideId  = $r['rideID'] ?? $r['RideID'] ?? 0;
-              $peerName = h($r['SenderName'] ?? $r['name'] ?? 'User');
-              $peerPic  = !empty($r['senderPhoto']) ? h($r['senderPhoto']) : 'https://ui-avatars.com/api/?name='.urlencode($peerName).'&background=1d3a70&color=fff';
-              $rDate    = h($r['ride_Date'] ?? $r['rideDate'] ?? '');
-          ?>
-          <div class="card shadow-sm border-l-4 border-l-brand-orange bg-orange-50/30">
-              <div class="p-4 flex items-center gap-4">
-                  <img src="<?= $peerPic ?>" class="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=U&background=1d3a70&color=fff'">
-                  <div class="flex-1 min-w-0">
-                      <p class="font-black text-brand-blue text-base leading-tight"><?= $peerName ?></p>
-                      <p class="text-[11px] text-orange-600 font-bold mt-0.5">Wants to join your ride</p>
-                      <?php if($rDate): ?>
-                      <p class="text-[11px] text-gray-400 font-semibold mt-0.5"><?= formatRideDate($rDate) ?></p>
-                      <?php endif; ?>
-                  </div>
-                  <span class="bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full text-[10px] font-black uppercase shrink-0">Pending</span>
-              </div>
+          <p class="text-gray-700 font-black text-lg">No incoming requests</p>
+          <p class="text-gray-400 text-sm mt-1">When someone requests to join your ride, it will appear here.</p>
+        </div>
+        <?php else: ?>
+        <div class="space-y-4">
+        <?php foreach($inboxOnly as $r):
+          $rReqId   = $r['rideRequestID'] ?? $r['id'] ?? 0;
+          $rRideId  = $r['rideID']        ?? $r['RideID'] ?? 0;
+          $peerName = h($r['SenderName']  ?? $r['name'] ?? 'User');
+          $peerPic  = !empty($r['senderPhoto']) ? h($r['senderPhoto']) : 'https://ui-avatars.com/api/?name='.urlencode($peerName).'&background=f3821a&color=fff';
+          $rDate    = $r['ride_Date']     ?? $r['rideDate'] ?? '';
+          $isAcc    = !empty($r['isaccept']) || strtolower($r['RequestStatus'] ?? '') === 'accepted';
+        ?>
+        <div class="card shadow-sm border-l-4 <?= $isAcc ? 'border-l-brand-green bg-green-50/20' : 'border-l-brand-orange bg-orange-50/20' ?>">
+          <div class="p-4 flex items-center gap-4">
+            <img src="<?= $peerPic ?>" class="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm"
+                 onerror="this.src='https://ui-avatars.com/api/?name=U&background=f3821a&color=fff'">
+            <div class="flex-1 min-w-0">
+              <p class="font-black text-brand-blue text-base leading-tight"><?= $peerName ?></p>
+              <p class="text-[11px] <?= $isAcc ? 'text-green-600' : 'text-orange-600' ?> font-bold mt-0.5">
+                <?= $isAcc ? '✅ Accepted your ride' : '⏳ Wants to join your ride' ?>
+              </p>
+              <?php if($rDate): ?>
+              <p class="text-[11px] text-gray-400 font-semibold mt-0.5"><?= formatRideDate($rDate) ?></p>
+              <?php endif; ?>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase shrink-0 <?= $isAcc ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700' ?>">
+              <?= $isAcc ? 'Accepted' : 'Pending' ?>
+            </span>
+          </div>
+          <div class="px-4 py-2 bg-gray-50/60 flex items-start gap-3 border-t border-gray-100">
+            <div class="flex flex-col items-center mt-1">
+              <div class="w-2 h-2 rounded-full bg-brand-green"></div>
+              <div class="w-px h-4 bg-gray-300 my-0.5"></div>
+              <div class="w-2 h-2 rounded-full bg-brand-orange"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold text-gray-600 truncate"><?= h($r['from_Address'] ?? '—') ?></p>
+              <p class="text-xs font-bold text-gray-600 truncate mt-1.5"><?= h($r['to_Address'] ?? '—') ?></p>
+            </div>
+          </div>
+          <?php if(!$isAcc): ?>
+          <div class="p-3 flex gap-2 border-t border-gray-100">
+            <button onclick="acceptRequest(<?= $rReqId ?>, <?= $rRideId ?>)"
+              class="flex-1 bg-brand-green text-white py-2.5 rounded-xl text-xs font-black hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-check"></i> Accept
+            </button>
+            <button onclick="rejectRequest(<?= $rReqId ?>, <?= $rRideId ?>)"
+              class="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-xs font-black hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-xmark"></i> Decline
+            </button>
+            <button onclick='openViewModal(<?= json_encode($r) ?>)'
+              class="bg-brand-blue text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-900 transition shadow-sm">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <?php else: ?>
+          <div class="p-3 flex justify-end border-t border-gray-100">
+            <button onclick='openViewModal(<?= json_encode($r) ?>)'
+              class="bg-brand-blue text-white px-4 py-2 rounded-xl text-xs font-black hover:bg-blue-900 transition shadow-sm">
+              <i class="fa-solid fa-eye mr-1"></i> View Details
+            </button>
+          </div>
+          <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+      </div><!-- /subpanel-inbox -->
 
-              <div class="px-4 pb-3 bg-gray-50/80 pt-2 flex items-start gap-3">
-                  <div class="flex flex-col items-center mt-1">
-                      <div class="w-2 h-2 rounded-full bg-brand-green"></div>
-                      <div class="w-px h-5 bg-gray-300 my-0.5"></div>
-                      <div class="w-2 h-2 rounded-full bg-brand-orange"></div>
-                  </div>
-                  <div class="flex-1">
-                      <p class="text-xs font-bold text-gray-600 truncate"><?= h($r['from_Address'] ?? '—') ?></p>
-                      <p class="text-xs font-bold text-gray-600 truncate mt-2"><?= h($r['to_Address'] ?? '—') ?></p>
-                  </div>
-              </div>
+      <!-- SUB-PANEL: SENT REQUESTS -->
+      <div id="subpanel-sent" class="hidden">
+        <?php if(empty($sentOnly)): ?>
+        <div class="text-center py-14">
+          <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-paper-plane text-blue-400 text-3xl"></i>
+          </div>
+          <p class="text-gray-700 font-black text-lg">No sent requests</p>
+          <p class="text-gray-400 text-sm mt-1">Requests you've sent to join rides will appear here.</p>
+          <a href="rides.php" class="inline-block mt-4 bg-brand-green text-white text-xs font-black px-5 py-2.5 rounded-full hover:bg-green-700 transition">
+            <i class="fa-solid fa-magnifying-glass mr-1"></i> Find Rides
+          </a>
+        </div>
+        <?php else: ?>
+        <div class="space-y-4">
+        <?php foreach($sentOnly as $r):
+          $rReqId   = $r['rideRequestID'] ?? $r['id'] ?? 0;
+          $rRideId  = $r['rideID']        ?? $r['RideID'] ?? 0;
+          $peerName = h($r['ReceiverName'] ?? $r['name'] ?? 'Ride Owner');
+          $peerPic  = !empty($r['receiverPhoto']) ? h($r['receiverPhoto']) : 'https://ui-avatars.com/api/?name='.urlencode($peerName).'&background=1d3a70&color=fff';
+          $rDate    = $r['ride_Date']     ?? $r['rideDate'] ?? '';
+          $isAcc    = !empty($r['isaccept']) || strtolower($r['RequestStatus'] ?? '') === 'accepted';
+          $isRej    = strtolower($r['RequestStatus'] ?? '') === 'rejected';
+        ?>
+        <div class="card shadow-sm border-l-4 <?= $isAcc ? 'border-l-brand-green bg-green-50/20' : ($isRej ? 'border-l-red-400 bg-red-50/20' : 'border-l-blue-400 bg-blue-50/20') ?>">
+          <div class="p-4 flex items-center gap-4">
+            <img src="<?= $peerPic ?>" class="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm"
+                 onerror="this.src='https://ui-avatars.com/api/?name=U&background=1d3a70&color=fff'">
+            <div class="flex-1 min-w-0">
+              <p class="font-black text-brand-blue text-base leading-tight"><?= $peerName ?></p>
+              <p class="text-[11px] font-bold mt-0.5
+                <?= $isAcc ? 'text-green-600' : ($isRej ? 'text-red-500' : 'text-blue-500') ?>">
+                <?= $isAcc ? '✅ Request Accepted!' : ($isRej ? '❌ Request Declined' : '⏳ Awaiting response') ?>
+              </p>
+              <?php if($rDate): ?>
+              <p class="text-[11px] text-gray-400 font-semibold mt-0.5"><?= formatRideDate($rDate) ?></p>
+              <?php endif; ?>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase shrink-0
+              <?= $isAcc ? 'bg-green-100 text-green-700' : ($isRej ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700') ?>">
+              <?= $isAcc ? 'Accepted' : ($isRej ? 'Rejected' : 'Pending') ?>
+            </span>
+          </div>
+          <div class="px-4 py-2 bg-gray-50/60 flex items-start gap-3 border-t border-gray-100">
+            <div class="flex flex-col items-center mt-1">
+              <div class="w-2 h-2 rounded-full bg-brand-green"></div>
+              <div class="w-px h-4 bg-gray-300 my-0.5"></div>
+              <div class="w-2 h-2 rounded-full bg-brand-orange"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold text-gray-600 truncate"><?= h($r['from_Address'] ?? '—') ?></p>
+              <p class="text-xs font-bold text-gray-600 truncate mt-1.5"><?= h($r['to_Address'] ?? '—') ?></p>
+            </div>
+          </div>
+          <div class="p-3 flex justify-between items-center border-t border-gray-100">
+            <?php if($isAcc): ?>
+            <span class="text-xs font-bold text-green-600"><i class="fa-solid fa-phone mr-1"></i><?= h($r['mobile_no'] ?? '—') ?></span>
+            <?php else: ?>
+            <span class="text-xs text-gray-400 font-semibold">Contact revealed after acceptance</span>
+            <?php endif; ?>
+            <button onclick='openViewModal(<?= json_encode($r) ?>)'
+              class="bg-brand-blue text-white px-4 py-2 rounded-xl text-xs font-black hover:bg-blue-900 transition shadow-sm">
+              <i class="fa-solid fa-eye mr-1"></i> View
+            </button>
+          </div>
+        </div>
+        <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+      </div><!-- /subpanel-sent -->
 
-              <div class="p-3 flex gap-2 border-t border-gray-100">
-                  <button onclick="acceptRequest(<?= $rReqId ?>, <?= $rRideId ?>)" class="flex-1 bg-brand-green text-white py-2.5 rounded-xl text-xs font-black hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-1.5">
-                      <i class="fa-solid fa-check"></i> Accept
-                  </button>
-                  <button onclick="rejectRequest(<?= $rReqId ?>, <?= $rRideId ?>)" class="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-xs font-black hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-1.5">
-                      <i class="fa-solid fa-xmark"></i> Decline
-                  </button>
-                  <button onclick='openViewModal(<?= json_encode($r) ?>)' class="bg-brand-blue text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-900 transition shadow-sm">
-                      <i class="fa-solid fa-eye"></i>
-                  </button>
-              </div>
-          </div>
-          <?php endforeach; ?>
-          </div>
-      <?php endif; ?>
-    </div>
+    </div><!-- /panel-responses -->
 
     <!-- 4. CONNECTIONS (Accepted only) -->
     <div class="panel <?= $tab==='connections'?'active':'' ?> fade-up" id="panel-connections">
@@ -758,11 +920,19 @@ textarea.field {min-height: 80px; resize: none;}
 
 <script>
 function switchTab(name) {
-    ['rides','inbox','connections','profile'].forEach(t=>{
+    ['rides','responses','connections','profile'].forEach(t=>{
         document.getElementById('panel-'+t)?.classList.toggle('active', t===name);
         document.getElementById('tb-'+t)?.classList.toggle('active', t===name);
     });
     history.replaceState(null,'','profile.php?tab='+name);
+}
+
+// Sub-tab switcher inside Responses panel
+function switchSubTab(name) {
+    ['inbox','sent'].forEach(s => {
+        document.getElementById('subpanel-'+s)?.classList.toggle('hidden', s !== name);
+        document.getElementById('stb-'+s)?.classList.toggle('active-sub', s === name);
+    });
 }
 
 // Accept ride request
@@ -845,35 +1015,55 @@ function closeViewModal() {
 }
 
 // PROFILE PICTURE UPLOAD
+// API: POST https://api.greencar.ngo/api/App/UploadFile
+// Response: { status: 1, url: "https://appdoc.blob.core.windows.net/greencar/..." }
 async function uploadProfilePic(input) {
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    toast('success', 'Uploading image...');
-    
+
+    // Size guard: max 5 MB
+    if (file.size > 5 * 1024 * 1024) {
+        toast('error', 'Image must be under 5 MB'); return;
+    }
+
+    // Show instant preview via FileReader (works offline too)
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = document.getElementById('profilePicImg');
+        img.src = e.target.result;
+        img.classList.remove('hidden');
+        document.getElementById('profilePicPlaceholder')?.classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+
+    toast('success', '⏳ Uploading...');
+
     try {
-        const res = await fetch('https://api.greencar.ngo/api/App/UploadFile', {
+        const formData = new FormData();
+        formData.append('file', file);   // API reads Form.Files[0] — any key works
+
+        const res  = await fetch('https://api.greencar.ngo/api/App/UploadFile', {
             method: 'POST',
             body: formData
+            // NOTE: DO NOT set Content-Type header — browser sets multipart/form-data boundary automatically
         });
-        const url = await res.text(); // Assuming API returns plain URL string
-        if(url && url.startsWith('http')) {
-            document.getElementById('hiddenProfileImgUrl').value = url;
-            const img = document.getElementById('profilePicImg');
-            if (img) {
-                img.src = url;
-                img.classList.remove('hidden');
-                const placeholder = document.getElementById('profilePicPlaceholder');
-                if (placeholder) placeholder.classList.add('hidden');
-            }
-            toast('success', 'Image uploaded! Remember to Save Profile.');
+
+        // API returns JSON: { "status": 1, "url": "https://appdoc.blob..." }
+        const data = await res.json();
+
+        if (data.status === 1 && data.url) {
+            // Set in hidden field so Save Profile submits it
+            document.getElementById('hiddenProfileImgUrl').value = data.url;
+            // Update preview with real CDN URL
+            document.getElementById('profilePicImg').src = data.url;
+            toast('success', '✅ Image uploaded! Click Save Profile.');
         } else {
-            toast('error', 'Upload failed. Try again.');
+            toast('error', '❌ Upload failed: ' + (data.message || 'Unknown error'));
         }
     } catch(e) {
-        toast('error', 'Upload error.');
+        // Network error — preview already shown via FileReader
+        toast('error', '❌ Network error during upload. Try again.');
+        console.error('Upload error:', e);
     }
 }
 
