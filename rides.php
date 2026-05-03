@@ -220,8 +220,7 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
   </div>
 </div>
 
-<!-- Google Maps Places API -->
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDZJ7k0nMuZPRNFxAtaIe0HHLNg5okTUVI&libraries=places"></script>
+<!-- Places Autocomplete Helper (loads Google Maps API internally) -->
 <script src="js/places-ac.js"></script>
 <script>
 function filterRides(type, el) {

@@ -1,40 +1,95 @@
 /**
  * Pool India — Google Places Autocomplete Helper
- * Usage: PI_Places.init(config)
+ * ─────────────────────────────────────────────────
+ * Modeled after the Angular AutocompleteComponent:
+ *   - componentRestrictions: { country: 'IN' }
+ *   - types: ['geocode']
+ *   - place_changed → lat, lng, formatted_address
+ *
+ * Usage:
+ *   PI_Places.init({ inputId, latId, lngId, onSelect, onClear })
+ *   PI_Places.initAll([...configs])
  */
 const PI_Places = (() => {
     const GMAPS_KEY = 'AIzaSyDZJ7k0nMuZPRNFxAtaIe0HHLNg5okTUVI';
 
-    // Inject Google Maps script once
+    // ── Google Maps script loader (singleton, handles duplicate protection) ──
     let _loaded = false;
+    let _loading = false;
     let _callbacks = [];
 
     function load(cb) {
-        if (_loaded) { cb(); return; }
+        // If already loaded, fire immediately
+        if (_loaded && typeof google !== 'undefined' && google.maps && google.maps.places) {
+            cb();
+            return;
+        }
         _callbacks.push(cb);
-        if (document.getElementById('gm-script')) return; // already injecting
+
+        // If another load is in progress, just queue
+        if (_loading) return;
+
+        // Check if Google Maps was already loaded by another script tag
+        if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+            _loaded = true;
+            _loading = false;
+            _callbacks.forEach(f => f());
+            _callbacks = [];
+            return;
+        }
+
+        // Check if another script tag is already injecting Google Maps
+        const existingScripts = document.querySelectorAll('script[src*="maps.googleapis.com/maps/api/js"]');
+        if (existingScripts.length > 0) {
+            // Script tag exists but API not ready yet — poll until ready
+            _loading = true;
+            const poll = setInterval(() => {
+                if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+                    clearInterval(poll);
+                    _loaded = true;
+                    _loading = false;
+                    _callbacks.forEach(f => f());
+                    _callbacks = [];
+                }
+            }, 100);
+            return;
+        }
+
+        // No existing script — inject our own
+        _loading = true;
         const s = document.createElement('script');
-        s.id = 'gm-script';
+        s.id = 'pi-gmaps-script';
         s.async = true;
         s.defer = true;
         s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places,geometry&callback=__PI_MapsReady`;
+
         window.__PI_MapsReady = () => {
             _loaded = true;
+            _loading = false;
             _callbacks.forEach(f => f());
             _callbacks = [];
         };
+
+        s.onerror = () => {
+            console.error('[PI_Places] Failed to load Google Maps API');
+            _loading = false;
+        };
+
         document.head.appendChild(s);
     }
 
     /**
-     * init({
+     * init(config) — attach Places Autocomplete to a single input
+     *
+     * config = {
      *   inputId:    string,          // id of <input>
      *   latId?:     string,          // hidden input for lat
      *   lngId?:     string,          // hidden input for lng
-     *   onSelect?:  fn({place, lat, lng, formatted_address}),
+     *   onSelect?:  fn({ place, lat, lng, formatted_address }),
      *   onClear?:   fn(),
-     *   bias?:      'IN'             // country bias (default India)
-     * })
+     *   bias?:      'IN'             // country bias (default 'IN')
+     *   types?:     ['geocode']      // default 'geocode' — same as Angular component
+     * }
      */
     function init(cfg) {
         load(() => _attach(cfg));
@@ -48,10 +103,16 @@ const PI_Places = (() => {
         const input = document.getElementById(cfg.inputId);
         if (!input) return;
 
+        // Prevent double-attaching
+        if (input.dataset.piAcAttached === '1') return;
+        input.dataset.piAcAttached = '1';
+
+        // Match Angular autocomplete config:
+        //   componentRestrictions: { country: 'IN' }, types: [this.adressType]
         const options = {
-            componentRestrictions: { country: cfg.bias || 'in' },
+            componentRestrictions: { country: cfg.bias || 'IN' },
             fields: ['formatted_address', 'geometry', 'name', 'place_id'],
-            types: ['geocode', 'establishment'],
+            types: cfg.types || ['geocode'],  // Angular uses 'geocode' by default
         };
 
         const ac = new google.maps.places.Autocomplete(input, options);
@@ -59,9 +120,10 @@ const PI_Places = (() => {
         // Style the pac-container to match Pool India design
         _injectAutocompleteStyles();
 
-        ac.addListener('place_changed', () => {
+        // ── place_changed — same as Angular's google.maps.event.addListener ──
+        google.maps.event.addListener(ac, 'place_changed', () => {
             const place = ac.getPlace();
-            if (!place.geometry) {
+            if (!place || !place.geometry) {
                 // User typed something without selecting — clear coords
                 _setHidden(cfg, '', '');
                 cfg.onClear && cfg.onClear();
@@ -76,10 +138,24 @@ const PI_Places = (() => {
             cfg.onSelect && cfg.onSelect({ place, lat, lng, formatted_address: label });
         });
 
-        // Clear coords on manual edit
+        // Clear coords on manual edit (ensures stale coords are wiped)
         input.addEventListener('input', () => {
             _setHidden(cfg, '', '');
             cfg.onClear && cfg.onClear();
+        });
+
+        // Prevent form submit on Enter while autocomplete dropdown is open
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                // If pac-container is visible, prevent form submit
+                const pacContainers = document.querySelectorAll('.pac-container');
+                for (const pac of pacContainers) {
+                    if (pac.style.display !== 'none' && pac.querySelectorAll('.pac-item').length > 0) {
+                        e.preventDefault();
+                        return;
+                    }
+                }
+            }
         });
     }
 
@@ -88,6 +164,7 @@ const PI_Places = (() => {
         if (cfg.lngId) { const el = document.getElementById(cfg.lngId); if (el) el.value = lng; }
     }
 
+    // ── Beautiful dropdown styles matching Pool India design ──
     let _stylesInjected = false;
     function _injectAutocompleteStyles() {
         if (_stylesInjected) return;
@@ -101,6 +178,7 @@ const PI_Places = (() => {
             font-family: 'Plus Jakarta Sans', sans-serif !important;
             overflow: hidden !important;
             z-index: 99999 !important;
+            background: #fff !important;
         }
         .pac-item {
             padding: 10px 16px !important;
@@ -110,6 +188,7 @@ const PI_Places = (() => {
             border-top: 1px solid #f1f5f9 !important;
             cursor: pointer !important;
             transition: background .15s !important;
+            line-height: 1.5 !important;
         }
         .pac-item:first-child { border-top: none !important; }
         .pac-item:hover, .pac-item-selected {
@@ -124,15 +203,19 @@ const PI_Places = (() => {
             background-image: none !important;
             width: 20px !important; height: 20px !important;
             margin-top: 2px !important;
+            margin-right: 8px !important;
         }
-        .pac-icon::before {
-            content: '\\f3c5';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            font-size: 12px;
-            color: #f3821a;
+        .pac-icon::after {
+            content: '📍';
+            font-size: 14px;
         }
-        .pac-logo { display: none !important; }
+        .pac-icon-marker { display: inline-block !important; }
+        .pac-logo::after {
+            display: none !important;
+        }
+        .hdpi .pac-icon {
+            background-image: none !important;
+        }
         `;
         const style = document.createElement('style');
         style.textContent = css;
@@ -141,7 +224,7 @@ const PI_Places = (() => {
 
     /**
      * Calculate distance & duration between two latlng pairs.
-     * Returns Promise<{distance_km, duration_text, duration_secs}>
+     * Returns Promise<{distance_km, distance_text, duration_text, duration_secs}>
      */
     function getDistance(fromLatLng, toLatLng) {
         return new Promise((resolve, reject) => {

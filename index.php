@@ -916,9 +916,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
         </div>
     </footer>
 
-    <!-- Google Maps Places API -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDZJ7k0nMuZPRNFxAtaIe0HHLNg5okTUVI&libraries=places"></script>
-    <!-- Places AC Helper -->
+    <!-- Places Autocomplete Helper (loads Google Maps API internally) -->
     <script src="js/places-ac.js"></script>
     <!-- Scripts -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
