@@ -217,6 +217,76 @@ $userName = h(currentUser()['name'] ?? ''); ?>
         .count-anim {
             animation: countUp 0.6s ease both;
         }
+
+        /* ===== MOBILE RESPONSIVE OVERRIDES ===== */
+        @media (max-width: 639px) {
+            /* Hero */
+            .hero-light { min-height: auto; padding-top: 80px; padding-bottom: 30px; }
+            .hero-light h1 { font-size: 1.75rem !important; line-height: 1.2; }
+            .hero-light #hero-sub { font-size: 14px; margin-bottom: 20px; }
+
+            /* Hero widget */
+            .hero-light .bg-white.rounded-\[2rem\] { padding: 16px; border-radius: 1.2rem; }
+            #ride-tabs { gap: 4px; padding: 6px; }
+            #ride-tabs button { font-size: 11px; padding: 8px 4px; min-width: 60px; gap: 2px; }
+            #ride-tabs button i { font-size: 14px; }
+
+            /* Hero image / right visual */
+            .hero-light .lg\:w-\[55\%\] { display: none; }
+
+            /* Stats bar */
+            .max-w-6xl.-mt-10 { margin-top: -20px; }
+            .max-w-6xl.-mt-10 .bg-white { padding: 16px 12px; border-radius: 1.2rem; gap: 12px; }
+            .max-w-6xl.-mt-10 .text-4xl { font-size: 1.4rem; }
+            .max-w-6xl.-mt-10 .text-xs { font-size: 9px; letter-spacing: 0.05em; }
+
+            /* Services section */
+            #services { padding: 40px 0; }
+            #services h2 { font-size: 1.6rem; }
+            #services p.text-lg { font-size: 14px; }
+            #services .rounded-\[2\.5rem\] { border-radius: 1.2rem; padding: 20px; }
+            #services h3 { font-size: 1.3rem; }
+            #services .phone-mockup { width: 140px !important; height: 300px !important; border-width: 6px; border-radius: 24px; }
+            #services .phone-mockup::before { width: 60px; height: 16px; }
+
+            /* Viksit Bharat */
+            #mission { padding: 40px 0; }
+            #mission h2 { font-size: 1.6rem; }
+            #mission .vb-stat { padding: 12px 8px; border-radius: 0.8rem; }
+            #mission .vb-stat .text-3xl { font-size: 1.2rem; }
+            #mission .vb-stat .text-xs { font-size: 9px; }
+            #mission .vb-card { padding: 16px; border-radius: 1rem; }
+            #mission .vb-card h3 { font-size: 1rem; }
+
+            /* Download section */
+            #download { padding: 40px 0; }
+            #download .bg-brand-light { padding: 20px; border-radius: 1.5rem; }
+            #download h2 { font-size: 1.5rem; }
+            #download .h-\[500px\] { height: 320px; }
+            #download .phone-mockup { border-width: 6px; border-radius: 24px; }
+            #download .phone-mockup:first-child { width: 150px !important; height: 310px !important; right: 0 !important; }
+            #download .phone-mockup:last-child,
+            #download .phone-mockup:nth-child(2) { width: 160px !important; height: 330px !important; left: 0 !important; }
+
+            /* Contact section */
+            #contact { padding: 40px 0; }
+            #contact h2 { font-size: 1.5rem; }
+            #contact form { padding: 20px; border-radius: 1.2rem; }
+
+            /* Footer */
+            footer { padding: 40px 0; }
+            footer .text-3xl { font-size: 1.3rem; }
+            footer .w-20.h-20 { width: 50px; height: 50px; }
+            footer .grid { gap: 24px; }
+            footer h4 { margin-bottom: 12px; }
+        }
+
+        @media (min-width: 640px) and (max-width: 1023px) {
+            .hero-light { min-height: auto; padding-top: 100px; }
+            .hero-light h1 { font-size: 2.2rem !important; }
+            #services .phone-mockup { width: 160px !important; height: 340px !important; }
+            #download .h-\[500px\] { height: 380px; }
+        }
     </style>
 </head>
 
@@ -230,7 +300,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
         <div class="hero-grid"></div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full mt-4">
-            <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+            <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-20">
 
                 <!-- Left Content: Dynamic Booking Widget -->
                 <div class="lg:w-[45%] w-full" data-aos="fade-right" data-aos-duration="1000">
@@ -412,25 +482,22 @@ $userName = h(currentUser()['name'] ?? ''); ?>
     <!-- ========== STATS COMPONENT (Light) ========== -->
     <div class="max-w-6xl mx-auto px-4 sm:px-6 relative z-30 -mt-10" data-aos="fade-up">
         <div
-            class="bg-white rounded-[2rem] shadow-soft p-8 border border-gray-100 flex flex-wrap justify-between items-center gap-8 md:gap-0">
-            <div class="w-1/2 md:w-auto text-center px-4">
-                <div class="text-4xl font-black text-brand-blue mb-1">5L+</div>
-                <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Poolers</div>
+            class="bg-white rounded-[2rem] shadow-soft p-6 sm:p-8 border border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 items-center">
+            <div class="text-center px-2 sm:px-4">
+                <div class="text-2xl sm:text-4xl font-black text-brand-blue mb-1">5L+</div>
+                <div class="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">Active Poolers</div>
             </div>
-            <div class="hidden md:block w-px h-12 bg-gray-200"></div>
-            <div class="w-1/2 md:w-auto text-center px-4">
-                <div class="text-4xl font-black text-brand-green mb-1">100+</div>
-                <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">Cities Live</div>
+            <div class="text-center px-2 sm:px-4">
+                <div class="text-2xl sm:text-4xl font-black text-brand-green mb-1">100+</div>
+                <div class="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">Cities Live</div>
             </div>
-            <div class="hidden md:block w-px h-12 bg-gray-200"></div>
-            <div class="w-1/2 md:w-auto text-center px-4">
-                <div class="text-4xl font-black text-brand-orange mb-1">₹5Cr</div>
-                <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">Money Saved</div>
+            <div class="text-center px-2 sm:px-4">
+                <div class="text-2xl sm:text-4xl font-black text-brand-orange mb-1">₹5Cr</div>
+                <div class="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">Money Saved</div>
             </div>
-            <div class="hidden md:block w-px h-12 bg-gray-200"></div>
-            <div class="w-1/2 md:w-auto text-center px-4">
-                <div class="text-4xl font-black text-brand-blue mb-1">10K</div>
-                <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">Trees Saved</div>
+            <div class="text-center px-2 sm:px-4">
+                <div class="text-2xl sm:text-4xl font-black text-brand-blue mb-1">10K</div>
+                <div class="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">Trees Saved</div>
             </div>
         </div>
     </div>
@@ -438,17 +505,17 @@ $userName = h(currentUser()['name'] ?? ''); ?>
     <!-- ========== SERVICES BENTO GRID (Showcasing App UI) ========== -->
     <section id="services" class="py-24 bg-brand-light relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div class="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
-                <h2 class="text-4xl md:text-5xl font-black text-brand-blue mb-4">Complete <span
+            <div class="text-center max-w-3xl mx-auto mb-10 sm:mb-16" data-aos="fade-up">
+                <h2 class="text-2xl sm:text-4xl md:text-5xl font-black text-brand-blue mb-4">Complete <span
                         class="text-brand-green">Mobility Hub.</span></h2>
-                <p class="text-gray-500 text-lg font-medium">One app for all your travel needs. Experience seamless UI
+                <p class="text-gray-500 text-base sm:text-lg font-medium">One app for all your travel needs. Experience seamless UI
                     and effortless ride matching.</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
 
                 <!-- 1. Carpool (Uses App Screenshot) -->
-                <div class="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-soft hover:shadow-lg transition-all duration-500 border border-gray-100 flex flex-col md:flex-row items-center gap-8 group"
+                <div class="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 md:p-12 shadow-soft hover:shadow-lg transition-all duration-500 border border-gray-100 flex flex-col md:flex-row items-center gap-6 sm:gap-8 group"
                     data-aos="fade-right">
                     <div class="md:w-1/2 z-10">
                         <div
@@ -473,7 +540,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
                 </div>
 
                 <!-- 2. Bike Buddy (Uses App Screenshot) -->
-                <div class="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-soft hover:shadow-lg transition-all duration-500 border border-gray-100 flex flex-col md:flex-row items-center gap-8 group"
+                <div class="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 md:p-12 shadow-soft hover:shadow-lg transition-all duration-500 border border-gray-100 flex flex-col md:flex-row items-center gap-6 sm:gap-8 group"
                     data-aos="fade-left" data-aos-delay="100">
                     <div class="md:w-1/2 order-2 md:order-1 flex justify-center">
                         <div
@@ -498,7 +565,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
                 </div>
 
                 <!-- 3. CabShare (Uses App Screenshot) -->
-                <div class="bg-brand-blue text-white rounded-[2.5rem] p-8 md:p-12 shadow-glow-blue hover:shadow-2xl transition-all duration-500 flex flex-col md:flex-row items-center gap-8 group relative overflow-hidden"
+                <div class="bg-brand-blue text-white rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 md:p-12 shadow-glow-blue hover:shadow-2xl transition-all duration-500 flex flex-col md:flex-row items-center gap-6 sm:gap-8 group relative overflow-hidden"
                     data-aos="fade-right">
                     <div class="absolute top-0 right-0 w-[300px] h-[300px] bg-white/5 rounded-full blur-[50px]"></div>
                     <div class="md:w-1/2 z-10">
@@ -523,7 +590,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
                 </div>
 
                 <!-- 4. Shuttle (Uses App Screenshot) -->
-                <div class="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-soft hover:shadow-lg transition-all duration-500 border border-brand-green/20 flex flex-col md:flex-row items-center gap-8 group"
+                <div class="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 md:p-12 shadow-soft hover:shadow-lg transition-all duration-500 border border-brand-green/20 flex flex-col md:flex-row items-center gap-6 sm:gap-8 group"
                     data-aos="fade-left" data-aos-delay="100">
                     <div class="md:w-1/2 order-2 md:order-1 flex justify-center">
                         <div
@@ -573,7 +640,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
                     <span class="text-white font-black text-sm uppercase tracking-widest">Viksit Bharat
                         Initiative</span>
                 </div>
-                <h2 class="text-4xl md:text-6xl font-black text-white mb-5 tracking-tight">
+                <h2 class="text-2xl sm:text-4xl md:text-6xl font-black text-white mb-5 tracking-tight">
                     Driving India <span class="text-brand-orange">Forward.</span>
                 </h2>
                 <p class="text-blue-200 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
@@ -651,18 +718,18 @@ $userName = h(currentUser()['name'] ?? ''); ?>
     <section id="download" class="py-24 bg-white relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div
-                class="bg-brand-light rounded-[3rem] p-8 md:p-16 flex flex-col lg:flex-row items-center gap-16 shadow-soft border border-gray-100">
+                class="bg-brand-light rounded-[1.5rem] sm:rounded-[3rem] p-6 sm:p-8 md:p-16 flex flex-col lg:flex-row items-center gap-10 sm:gap-16 shadow-soft border border-gray-100">
 
                 <!-- Content Side -->
                 <div class="lg:w-1/2" data-aos="fade-right">
                     <div class="inline-block text-brand-orange font-bold tracking-widest uppercase mb-2 text-sm">
                         Download App</div>
-                    <h2 class="text-4xl md:text-5xl font-black mb-6 text-brand-blue">Available on Play Store & App Store
+                    <h2 class="text-2xl sm:text-4xl md:text-5xl font-black mb-6 text-brand-blue">Available on Play Store & App Store
                     </h2>
                     <p class="text-gray-600 text-lg mb-8 font-medium">Track your rides, verify your profile securely,
                         and join India's fastest-growing mobility community.</p>
 
-                    <div class="flex flex-wrap gap-4 mt-8">
+                    <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mt-6 sm:mt-8">
                         <a href="#"
                             class="bg-brand-blue text-white px-6 py-3.5 rounded-2xl flex items-center gap-4 hover:bg-blue-900 transition-colors shadow-md">
                             <i class="fa-brands fa-google-play text-3xl text-brand-green"></i>
@@ -706,7 +773,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
                 <div class="lg:w-5/12" data-aos="fade-right">
                     <div class="inline-block text-brand-orange font-bold tracking-widest uppercase mb-2 text-sm">Get in
                         Touch</div>
-                    <h2 class="text-4xl md:text-5xl font-black text-brand-blue mb-6">Have questions?<br>Let's connect.
+                    <h2 class="text-2xl sm:text-4xl md:text-5xl font-black text-brand-blue mb-6">Have questions?<br>Let’s connect.
                     </h2>
                     <p class="text-gray-600 mb-8 font-medium">Whether you are looking for enterprise corporate tie-ups,
                         or need support with the app, we are here to help you.</p>
@@ -799,7 +866,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12 text-sm font-medium">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-12 text-sm font-medium">
                 <div>
                     <h4 class="text-brand-orange font-bold mb-6 tracking-wider uppercase">Services</h4>
                     <ul class="space-y-3">

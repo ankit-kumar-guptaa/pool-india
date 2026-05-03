@@ -8,6 +8,7 @@ $_hName = h($_hUser['name'] ?? 'User');
 $_hInitial = strtoupper(substr($_hUser['name'] ?? 'U', 0, 1));
 $_hPhone = h($_hUser['mobile_No'] ?? '');
 $_hPage = basename($_SERVER['PHP_SELF'] ?? '');
+$_hProfileImg = $_hUser['profileImageUrl'] ?? $_hUser['photoPath'] ?? $_hUser['profilePicturePath'] ?? $_hUser['photo'] ?? $_hUser['image'] ?? '';
 
 // Active link helper
 function _navActive(string $page, string $current): string
@@ -94,6 +95,25 @@ function _navActive(string $page, string $current): string
     align-items: center;
     justify-content: center;
     border: 2px solid #bbf7d0;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+  }
+
+  /* ── Responsive header fixes ── */
+  @media (max-width: 767px) {
+    .glass-nav { padding-top: 2px; padding-bottom: 2px; }
+    .glass-nav .flex.justify-between { height: 56px; }
+    .glass-nav img[alt="Pool India"] { width: 130px; }
+  }
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .glass-nav img[alt="Pool India"] { width: 150px; }
   }
 
   .ham-line {
@@ -210,7 +230,7 @@ function _navActive(string $page, string $current): string
           <div class="relative" id="user-dd-wrap">
             <button id="user-dd-btn" onclick="toggleDd(event)"
               class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-2xl border-2 border-gray-100 hover:border-brand-green transition-all bg-white">
-              <div class="user-avatar"><?= $_hInitial ?></div>
+              <div class="user-avatar"><?php if(!empty($_hProfileImg)): ?><img src="<?= h($_hProfileImg) ?>" alt="<?= $_hInitial ?>" onerror="this.style.display='none';this.parentNode.textContent='<?= $_hInitial ?>'"><?php else: ?><?= $_hInitial ?><?php endif; ?></div>
               <div class="text-left hidden lg:block">
                 <p class="text-xs text-gray-400 font-semibold leading-none">Welcome back</p>
                 <p class="text-sm text-brand-blue font-black leading-tight"><?= $_hName ?></p>
@@ -223,7 +243,7 @@ function _navActive(string $page, string $current): string
               <!-- User Info Header -->
               <div class="px-4 py-4 border-b border-gray-100">
                 <div class="flex items-center gap-3">
-                  <div class="user-avatar w-11 h-11 rounded-xl text-lg"><?= $_hInitial ?></div>
+                  <div class="user-avatar w-11 h-11 rounded-xl text-lg"><?php if(!empty($_hProfileImg)): ?><img src="<?= h($_hProfileImg) ?>" alt="<?= $_hInitial ?>" onerror="this.style.display='none';this.parentNode.textContent='<?= $_hInitial ?>'"><?php else: ?><?= $_hInitial ?><?php endif; ?></div>
                   <div>
                     <p class="font-black text-brand-blue text-sm"><?= $_hName ?></p>
                     <?php if ($_hPhone): ?>
@@ -284,7 +304,7 @@ function _navActive(string $page, string $current): string
       <!-- Mobile: Right actions -->
       <div class="flex md:hidden items-center gap-2">
         <?php if ($_hIsLoggedIn): ?>
-          <a href="profile.php" class="user-avatar text-base"><?= $_hInitial ?></a>
+          <a href="profile.php" class="user-avatar text-base"><?php if(!empty($_hProfileImg)): ?><img src="<?= h($_hProfileImg) ?>" alt="<?= $_hInitial ?>" onerror="this.style.display='none';this.parentNode.textContent='<?= $_hInitial ?>'"><?php else: ?><?= $_hInitial ?><?php endif; ?></a>
         <?php else: ?>
           <a href="login.php"
             class="text-brand-blue font-bold text-sm border-2 border-brand-blue px-3 py-1.5 rounded-full">Login</a>
@@ -323,7 +343,7 @@ function _navActive(string $page, string $current): string
       <!-- User Badge -->
       <div class="mx-4 mt-4 p-4 rounded-2xl" style="background:linear-gradient(135deg,#1d3a70,#0d2252)">
         <div class="flex items-center gap-3">
-          <div class="user-avatar w-12 h-12 rounded-xl text-xl"><?= $_hInitial ?></div>
+          <div class="user-avatar w-12 h-12 rounded-xl text-xl"><?php if(!empty($_hProfileImg)): ?><img src="<?= h($_hProfileImg) ?>" alt="<?= $_hInitial ?>" onerror="this.style.display='none';this.parentNode.textContent='<?= $_hInitial ?>'"><?php else: ?><?= $_hInitial ?><?php endif; ?></div>
           <div>
             <p class="font-black text-white"><?= $_hName ?></p>
             <?php if ($_hPhone): ?>
