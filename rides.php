@@ -2,27 +2,53 @@
 require_once __DIR__ . '/config.php';
 requireLogin();
 $user = currentUser();
-$from  = h($_GET['from']  ?? 'Sector 3, Noida');
-$to    = h($_GET['to']    ?? 'Connaught Place, Delhi');
+$from  = h($_GET['from']  ?? '');
+$to    = h($_GET['to']    ?? '');
 $date  = h($_GET['date']  ?? date('Y-m-d'));
 $seats = (int)($_GET['seats'] ?? 1);
+$fromLat = $_GET['from_lat'] ?? '';
+$fromLng = $_GET['from_lng'] ?? '';
+$toLat   = $_GET['to_lat'] ?? '';
+$toLng   = $_GET['to_lng'] ?? '';
 
-// Dynamic API call
-$searchCriteria = [
-    'formLatitude' => $_GET['from_lat'] ?? '0',
-    'formLongitude' => $_GET['from_lng'] ?? '0',
-    'toLatitude' => $_GET['to_lat'] ?? '0',
-    'toLongitude' => $_GET['to_lng'] ?? '0',
-    'isSearch' => 1,
-    'userId' => $user['id'] ?? 0,
-    'rideDate' => $date,
-    'seats' => $seats
-];
-
-$ridesResp = RideService::searchRides($searchCriteria);
+// Build FULL PostRide model matching Flutter's toJson() format
+// The API uses the same PostRide endpoint for both posting (isSearch=0) and searching (isSearch=1)
 $rides = [];
-if (isset($ridesResp['data']) && is_array($ridesResp['data'])) {
-    $rides = $ridesResp['data'];
+if ($fromLat && $toLat && $from && $to) {
+    $searchPayload = [
+        'via'             => [],
+        'userId'          => $user['id'] ?? 0,
+        'rideID'          => 1,
+        'userName'        => $user['name'] ?? 'User',
+        'userEmail'       => $user['email'] ?? '',
+        'userMobileNo'    => $user['mobile_No'] ?? '',
+        'userType'        => 'Pooler',
+        'from_Address'    => $_GET['from'] ?? '',
+        'to_Address'      => $_GET['to'] ?? '',
+        'form_Latitude'   => $fromLat,
+        'form_Longitude'  => $fromLng,
+        'to_Latitude'     => $toLat,
+        'to_Longitude'    => $toLng,
+        'ride_Type'       => 'One-time',
+        'ride_Date'       => $date . 'T00:00:00',
+        'ride_Frequency'  => 'One-way',
+        'user_Comment'    => '',
+        'internal_code'   => 'XYZ123',
+        'senderName'      => $user['name'] ?? 'User',
+        'isSendRequest'   => false,
+        'isSearch'        => 1,  // KEY: This tells the API to SEARCH, not post
+        'seats'           => 0,
+        'userPhoto'       => '',
+        'companyName'     => $user['companyName'] ?? '',
+        'price'           => 0,
+        'displayNumberOnSearch' => false,
+        'totaldistance'   => 0,
+    ];
+
+    $ridesResp = RideService::searchRides($searchPayload);
+    if (isset($ridesResp['data']) && is_array($ridesResp['data'])) {
+        $rides = $ridesResp['data'];
+    }
 }
 
 // Ensure type icons mapping covers backend terms
@@ -39,23 +65,31 @@ $typeIcons = ['Carpool'=>'fa-car-side','Bike'=>'fa-motorcycle','CabShare'=>'fa-t
 <script>tailwind.config={theme:{extend:{fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']},colors:{brand:{green:'#1b8036',blue:'#1d3a70',orange:'#f3821a'}}}}}</script>
 <style>
 body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
-/* glass-nav defined in header.php */
 .ride-card{background:#fff;border-radius:1.5rem;border:1.5px solid #e2e8f0;transition:all .3s;cursor:pointer;}
 .ride-card:hover{border-color:#1b8036;box-shadow:0 8px 32px rgba(27,128,54,.13);transform:translateY(-3px);}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;}
-.chip{padding:8px 16px;border-radius:999px;border:2px solid #e2e8f0;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;background:#fff;color:#64748b;}
+.chip{padding:8px 16px;border-radius:999px;border:2px solid #e2e8f0;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;background:#fff;color:#64748b;white-space:nowrap;}
 .chip.active,.chip:hover{border-color:#1b8036;background:#f0fdf4;color:#1b8036;}
-.search-wrap{background:#fff;border-radius:0 0 2rem 2rem;padding:16px 20px 20px;border-bottom:1px solid #e2e8f0;}
-.src-field{background:#f8fafc;border:2px solid #e2e8f0;border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:10px;transition:all .25s;position:relative;}
-.src-field:focus-within{border-color:#1b8036;background:#fff;box-shadow:0 0 0 3px rgba(27,128,54,.08);}
-.src-field.to:focus-within{border-color:#f3821a;box-shadow:0 0 0 3px rgba(243,130,26,.08);}
-.src-input{border:none;outline:none;background:transparent;font-size:14px;font-weight:700;color:#1d3a70;width:100%;font-family:'Plus Jakarta Sans',sans-serif;}
-.src-label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:2px;}
-.route-dot-g{width:10px;height:10px;border-radius:50%;border:2.5px solid #1b8036;background:#fff;flex-shrink:0;}
+.src-input{border:none;outline:none;background:transparent;font-size:14px;font-weight:700;color:#fff;width:100%;font-family:'Plus Jakarta Sans',sans-serif;}
+.src-input::placeholder{color:rgba(255,255,255,.4);}
+.route-dot-g{width:10px;height:10px;border-radius:50%;border:2.5px solid #22c55e;background:#fff;flex-shrink:0;}
 .route-dot-o{width:10px;height:10px;border-radius:50%;border:2.5px solid #f3821a;background:#fff;flex-shrink:0;}
-.route-ln{width:1.5px;height:20px;background:linear-gradient(#1b8036,#f3821a);margin:0 auto;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
 .fade-up{animation:fadeUp .4s ease both;}
+.no-rides-wrap{padding:60px 20px;text-align:center;}
+.no-rides-icon{font-size:64px;color:#cbd5e1;margin-bottom:16px;}
+/* Mobile responsive */
+@media (max-width: 639px) {
+    .search-route-row{flex-direction:column;gap:8px;}
+    .search-route-row .flex-1{width:100%;}
+    .search-swap-btn{transform:rotate(90deg);margin:4px auto;}
+    .search-actions{flex-direction:column;}
+    .search-actions input,.search-actions button{width:100%;}
+    .ride-card{padding:16px !important;}
+    .ride-card .flex.items-start{flex-direction:column;gap:12px;}
+    .ride-card img{width:48px;height:48px;}
+    .ride-card .w-56{width:100%;}
+}
 </style>
 </head>
 <body>
@@ -69,7 +103,7 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
         <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4">
 
           <!-- Route Row -->
-          <div class="flex items-stretch gap-3">
+          <div class="flex items-stretch gap-3 search-route-row">
             <!-- From -->
             <div class="flex-1 relative">
               <div class="flex items-center gap-2 mb-1">
@@ -79,14 +113,14 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
               <input id="r-from" name="from" type="text" autocomplete="off"
                 value="<?= $from ?>" placeholder="Leaving from..."
                 class="w-full bg-white/15 border-2 border-white/20 rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none placeholder-white/40 focus:border-white/60 focus:bg-white/25 transition">
-              <input type="hidden" id="r-from-lat" name="from_lat" value="<?= h($_GET['from_lat'] ?? '') ?>">
-              <input type="hidden" id="r-from-lng" name="from_lng" value="<?= h($_GET['from_lng'] ?? '') ?>">
+              <input type="hidden" id="r-from-lat" name="from_lat" value="<?= h($fromLat) ?>">
+              <input type="hidden" id="r-from-lng" name="from_lng" value="<?= h($fromLng) ?>">
             </div>
 
             <!-- Swap -->
             <div class="flex flex-col justify-center gap-1">
               <button type="button" onclick="rSwap()" id="r-swap"
-                class="w-8 h-8 rounded-full bg-white/15 border border-white/30 text-white/70 hover:bg-white hover:text-brand-blue flex items-center justify-center transition text-xs">
+                class="search-swap-btn w-8 h-8 rounded-full bg-white/15 border border-white/30 text-white/70 hover:bg-white hover:text-brand-blue flex items-center justify-center transition text-xs">
                 <i class="fa-solid fa-arrow-right-arrow-left"></i>
               </button>
             </div>
@@ -100,13 +134,13 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
               <input id="r-to" name="to" type="text" autocomplete="off"
                 value="<?= $to ?>" placeholder="Going to..."
                 class="w-full bg-white/15 border-2 border-white/20 rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none placeholder-white/40 focus:border-white/60 focus:bg-white/25 transition">
-              <input type="hidden" id="r-to-lat" name="to_lat" value="<?= h($_GET['to_lat'] ?? '') ?>">
-              <input type="hidden" id="r-to-lng" name="to_lng" value="<?= h($_GET['to_lng'] ?? '') ?>">
+              <input type="hidden" id="r-to-lat" name="to_lat" value="<?= h($toLat) ?>">
+              <input type="hidden" id="r-to-lng" name="to_lng" value="<?= h($toLng) ?>">
             </div>
           </div>
 
           <!-- Distance pill -->
-          <div id="r-dist-pill" class="<?= (isset($_GET['from_lat']) && isset($_GET['to_lat'])) ? '' : 'hidden' ?> text-center my-2">
+          <div id="r-dist-pill" class="<?= ($fromLat && $toLat) ? '' : 'hidden' ?> text-center my-2">
             <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-white/20 text-white border border-white/30">
               <i class="fa-solid fa-road text-brand-green"></i>
               <span id="r-dist-txt"><?= h($_GET['dist_text'] ?? 'Calculating...') ?></span>
@@ -115,15 +149,15 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
           </div>
 
           <!-- Date + Seats + Search -->
-          <div class="flex gap-2 mt-3">
+          <div class="flex gap-2 mt-3 search-actions flex-wrap">
             <input name="date" type="date" value="<?= $date ?>" min="<?= date('Y-m-d') ?>"
-              class="flex-1 bg-white/15 border-2 border-white/20 rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-white/60 transition">
+              class="flex-1 min-w-[130px] bg-white/15 border-2 border-white/20 rounded-xl px-3 py-2.5 text-white font-bold text-sm outline-none focus:border-white/60 transition">
             <input name="seats" type="number" min="1" max="4" value="<?= $seats ?>"
               class="w-16 bg-white/15 border-2 border-white/20 rounded-xl px-2 py-2.5 text-white font-bold text-sm outline-none text-center focus:border-white/60 transition">
             <button type="submit"
-              class="bg-brand-green text-white font-black px-5 py-2.5 rounded-xl text-sm hover:bg-green-600 transition flex items-center gap-2 shadow-lg">
+              class="bg-brand-green text-white font-black px-5 py-2.5 rounded-xl text-sm hover:bg-green-600 transition flex items-center gap-2 shadow-lg flex-shrink-0">
               <i class="fa-solid fa-magnifying-glass"></i>
-              <span class="hidden sm:inline">Search</span>
+              <span>Search</span>
             </button>
           </div>
         </div>
@@ -133,43 +167,77 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
 
   <div class="max-w-4xl mx-auto px-4 py-6">
     <!-- Filters -->
-    <div class="flex gap-2 overflow-x-auto pb-2 mb-5">
+    <div class="flex gap-2 overflow-x-auto pb-2 mb-5 -mx-1 px-1">
       <button class="chip active" onclick="filterRides('all',this)"><i class="fa-solid fa-border-all mr-1"></i>All</button>
-      <button class="chip" onclick="filterRides('Carpool',this)"><i class="fa-solid fa-car-side mr-1"></i>Carpool</button>
-      <button class="chip" onclick="filterRides('Bike',this)"><i class="fa-solid fa-motorcycle mr-1"></i>Bike</button>
-      <button class="chip" onclick="filterRides('CabShare',this)"><i class="fa-solid fa-taxi mr-1"></i>CabShare</button>
-      <button class="chip" onclick="filterRides('women',this)"><i class="fa-solid fa-venus mr-1"></i>Women Only</button>
+      <button class="chip" onclick="filterRides('Pooler',this)"><i class="fa-solid fa-car-side mr-1"></i>Pooler</button>
+      <button class="chip" onclick="filterRides('Seeker',this)"><i class="fa-solid fa-person-walking mr-1"></i>Seeker</button>
+      <button class="chip" onclick="filterRides('Either',this)"><i class="fa-solid fa-arrows-left-right mr-1"></i>Either</button>
     </div>
 
-    <p class="text-sm text-gray-500 font-semibold mb-4" id="result-count"><?= count($rides) ?> rides found · Sorted by departure time</p>
+    <p class="text-sm text-gray-500 font-semibold mb-4" id="result-count"><?= count($rides) ?> rides found<?= $from && $to ? " · $from → $to" : '' ?></p>
 
     <!-- Ride Cards -->
     <div class="space-y-4" id="rides-list">
       <?php if(empty($rides)): ?>
-        <div class="text-center py-10">
-            <i class="fa-solid fa-car-side text-gray-300 text-5xl mb-3"></i>
-            <p class="text-gray-500 font-bold">No rides found matching your criteria.</p>
+        <div class="no-rides-wrap">
+            <div class="no-rides-icon"><i class="fa-solid fa-route"></i></div>
+            <?php if (!$from || !$to): ?>
+                <p class="text-gray-500 font-bold text-lg mb-2">Search for rides</p>
+                <p class="text-gray-400 text-sm">Enter your From & To locations above to find matching rides.</p>
+            <?php else: ?>
+                <p class="text-gray-500 font-bold text-lg mb-2">No rides found</p>
+                <p class="text-gray-400 text-sm mb-4">No rides matching <strong><?= $from ?></strong> → <strong><?= $to ?></strong></p>
+                <a href="post-ride.php?mode=carpool" class="inline-flex items-center gap-2 bg-brand-green text-white font-bold px-6 py-3 rounded-xl hover:bg-green-700 transition shadow-lg">
+                    <i class="fa-solid fa-plus"></i> Post a Ride Instead
+                </a>
+            <?php endif; ?>
         </div>
       <?php else: ?>
       <?php foreach ($rides as $i => $r): 
           $rName = h($r['userName'] ?? $r['name'] ?? 'Pooler');
-          $rType = h($r['ride_Type'] ?? $r['type'] ?? 'Carpool');
+          $rUserType = h($r['userType'] ?? 'Pooler');
+          $rType = h($r['ride_Type'] ?? $r['type'] ?? 'One-time');
           $rPrice = $r['price'] ?? 0;
           $rSeats = $r['seats'] ?? $r['seats_left'] ?? 1;
           $rFrom = h($r['from_Address'] ?? $from);
           $rTo = h($r['to_Address'] ?? $to);
-          $rTime = h($r['ride_Date'] ?? $date); // May need proper date formatting
+          $rTime = h($r['ride_Date'] ?? $date);
           $rPhoto = !empty($r['userPhoto']) ? h($r['userPhoto']) : 'https://ui-avatars.com/api/?name='.urlencode($rName).'&background=1d3a70&color=fff';
-          $isVerified = !empty($r['verified']) || true; // Assume verified for now if from API
-          $womenOnly = !empty($r['women_only']) || (isset($r['userType']) && strpos(strtolower($r['userType']), 'women') !== false);
+          $isVerified = !empty($r['verified']) || true;
           $rideId = $r['rideID'] ?? $r['id'] ?? 0;
           $userId = $r['userId'] ?? 0;
+          $fromDist = $r['from_Distance'] ?? 0;
+          $toDist = $r['to_Distance'] ?? 0;
+          $rFrequency = $r['ride_Frequency'] ?? 'One-time';
+          $rCompany = $r['companyName'] ?? '';
+          $isVolunteer = (float)$rPrice <= 0;
+          $profilePct = $r['profileVerificationPercentage'] ?? 0;
+          $rComment = $r['user_Comment'] ?? '';
+          $rCarModel = $r['carModel'] ?? '';
+          $rCarNum = $r['carNumber'] ?? '';
+          $rCarColor = $r['carColor'] ?? '';
+          $rFuel = $r['fuelType'] ?? '';
+          $rMobile = $r['userMobileNo'] ?? '';
+          $rEmail = $r['userEmail'] ?? '';
+          $rTotalDist = $r['totaldistance'] ?? 0;
+          $rShowNum = !empty($r['displayNumberOnSearch']);
+          // Build detail URL with all params
+          $detailParams = http_build_query([
+              'id' => $rideId, 'from' => $from, 'to' => $to,
+              'name' => $rName, 'utype' => $rUserType, 'price' => $rPrice,
+              'seats' => $rSeats, 'rfrom' => $r['from_Address'] ?? $from, 'rto' => $r['to_Address'] ?? $to,
+              'rdate' => $r['ride_Date'] ?? $date, 'rfreq' => $rFrequency, 'rtype' => $rType,
+              'comment' => $rComment, 'car' => $rCarModel, 'carnum' => $rCarNum,
+              'color' => $rCarColor, 'fuel' => $rFuel, 'photo' => $r['userPhoto'] ?? '',
+              'mobile' => $rMobile, 'email' => $rEmail, 'company' => $rCompany,
+              'fdist' => $fromDist, 'tdist' => $toDist, 'totdist' => $rTotalDist,
+              'uid' => $userId, 'verified' => $isVerified ? 1 : 0, 'shownum' => $rShowNum ? 1 : 0,
+          ]);
       ?>
       <div class="ride-card p-5 fade-up ride-item"
-           data-type="<?= $rType ?>"
-           data-women="<?= $womenOnly ? '1' : '0' ?>"
+           data-type="<?= $rUserType ?>"
            style="animation-delay:<?= $i * 0.07 ?>s"
-           onclick="window.location.href='ride-detail.php?id=<?= $rideId ?>&from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>'">
+           onclick="window.location.href='ride-detail.php?<?= h($detailParams) ?>'">
         <div class="flex items-start gap-4">
           <img src="<?= $rPhoto ?>" class="w-14 h-14 rounded-2xl object-cover shrink-0" alt="<?= $rName ?>" onerror="this.src='https://ui-avatars.com/api/?name=User&background=1d3a70&color=fff'">
           <div class="flex-1 min-w-0">
@@ -177,14 +245,26 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
               <div>
                 <p class="font-black text-brand-blue text-base"><?= $rName ?></p>
                 <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span class="text-brand-orange text-xs">★★★★★</span>
-                  <?php if($isVerified): ?><span class="badge" style="background:#dcfce7;color:#166534;">✓ Verified</span><?php endif; ?>
-                  <?php if($womenOnly): ?><span class="badge" style="background:#fce7f3;color:#9d174d;"><i class="fa-solid fa-venus"></i>Women Only</span><?php endif; ?>
+                  <?php if($rUserType === 'Pooler'): ?>
+                    <span class="badge" style="background:#dcfce7;color:#166534;"><i class="fa-solid fa-car-side text-[10px]"></i> Pooler</span>
+                  <?php elseif($rUserType === 'Seeker'): ?>
+                    <span class="badge" style="background:#fff7ed;color:#9a3412;"><i class="fa-solid fa-person-walking text-[10px]"></i> Seeker</span>
+                  <?php else: ?>
+                    <span class="badge" style="background:#ede9fe;color:#5b21b6;"><i class="fa-solid fa-arrows-left-right text-[10px]"></i> Either</span>
+                  <?php endif; ?>
+                  <?php if($isVerified): ?><span class="badge" style="background:#dbeafe;color:#1e40af;">✓ Verified</span><?php endif; ?>
+                  <?php if($isVolunteer): ?><span class="badge" style="background:#fef3c7;color:#92400e;"><i class="fa-solid fa-heart text-[10px]"></i> Volunteer</span><?php endif; ?>
+                  <?php if($rCompany): ?><span class="badge" style="background:#f0f9ff;color:#0369a1;"><i class="fa-solid fa-building text-[10px]"></i> <?= h($rCompany) ?></span><?php endif; ?>
                 </div>
               </div>
-              <div class="text-right">
-                <p class="text-2xl font-black text-brand-green">₹<?= $rPrice ?></p>
-                <p class="text-xs text-gray-400 font-semibold">per seat</p>
+              <div class="text-right shrink-0">
+                <?php if($isVolunteer): ?>
+                  <p class="text-lg font-black text-brand-orange">FREE</p>
+                  <p class="text-xs text-gray-400 font-semibold">volunteer</p>
+                <?php else: ?>
+                  <p class="text-2xl font-black text-brand-green">₹<?= (int)$rPrice ?></p>
+                  <p class="text-xs text-gray-400 font-semibold">per seat</p>
+                <?php endif; ?>
               </div>
             </div>
             <div class="flex items-center gap-4 mt-3 bg-gray-50 p-3 rounded-xl">
@@ -193,23 +273,28 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
                 <div class="w-0.5 h-6 bg-gray-300 my-1"></div>
                 <div class="w-2 h-2 rounded-full bg-brand-orange"></div>
               </div>
-              <div class="flex-1">
-                <p class="font-bold text-xs text-gray-700 truncate w-56"><?= $rFrom ?></p>
-                <p class="font-bold text-xs text-gray-700 mt-3 truncate w-56"><?= $rTo ?></p>
+              <div class="flex-1 min-w-0">
+                <p class="font-bold text-xs text-gray-700 truncate"><?= $rFrom ?></p>
+                <p class="font-bold text-xs text-gray-700 mt-3 truncate"><?= $rTo ?></p>
               </div>
-              <div class="text-right text-xs text-gray-500 font-black">
+              <div class="text-right text-xs text-gray-500 font-black shrink-0">
                   <?php 
                       $timeStr = strtotime($rTime);
                       echo $timeStr ? date('h:i A', $timeStr) : 'Anytime';
                   ?>
               </div>
             </div>
-            <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-              <div class="flex items-center gap-2">
-                <span class="badge bg-blue-50 text-brand-blue"><i class="fa-solid <?= $typeIcons[$rType] ?? 'fa-car' ?>"></i> <?= $rType ?></span>
-                <span class="badge bg-gray-50 text-gray-600"><i class="fa-regular fa-user"></i> <?= $rSeats ?> seats available</span>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 flex-wrap gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="badge bg-blue-50 text-brand-blue"><i class="fa-regular fa-calendar"></i> <?= $rFrequency ?></span>
+                <?php if($rSeats > 0): ?>
+                <span class="badge bg-gray-50 text-gray-600"><i class="fa-regular fa-user"></i> <?= $rSeats ?> seat<?= $rSeats > 1 ? 's' : '' ?></span>
+                <?php endif; ?>
+                <?php if($fromDist > 0): ?>
+                <span class="badge bg-green-50 text-green-700"><i class="fa-solid fa-location-crosshairs text-[10px]"></i> <?= $fromDist ?> km away</span>
+                <?php endif; ?>
               </div>
-              <span class="text-xs text-gray-500 font-semibold uppercase tracking-widest"><i class="fa-solid fa-arrow-right"></i> View Details</span>
+              <span class="text-xs text-brand-green font-black uppercase tracking-widest"><i class="fa-solid fa-arrow-right"></i> Details</span>
             </div>
           </div>
         </div>
@@ -229,8 +314,7 @@ function filterRides(type, el) {
     let count = 0;
     document.querySelectorAll('.ride-item').forEach(card=>{
         const t = card.dataset.type;
-        const w = card.dataset.women === '1';
-        const show = type==='all' || t===type || (type==='women' && w);
+        const show = type==='all' || t===type;
         card.style.display = show ? '' : 'none';
         if(show) count++;
     });

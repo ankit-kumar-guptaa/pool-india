@@ -45,8 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     $seats        = (int)($_POST['seats']  ?? 1);
-    $price        = (float)($_POST['price']  ?? 0);
+    $isVolunteer  = isset($_POST['volunteer']);
+    $price        = $isVolunteer ? 0 : (float)($_POST['price']  ?? 0);
     $note         = trim($_POST['note']    ?? '');
+    $fuelType     = trim($_POST['fuelType'] ?? 'Petrol');
+    $totalDist    = (int)($_POST['totaldistance'] ?? 0);
     
     $carModel     = trim($_POST['carModel'] ?? '');
     $carNumber    = trim($_POST['carNumber'] ?? '');
@@ -84,13 +87,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'carNumber' => $carNumber,
             'carColor' => $carColor,
             'licenseNumber' => $licenseNum,
+            'fuelType' => $fuelType,
             'returnDate' => $returnDate ?: null,
             'returnTime' => $returnTime ?: null,
             'selectedDays' => $rideType === 'Recurring' ? $selectedDays : null,
             'internal_code' => 'XYZ123',
             'senderName' => $user['name'] ?? 'User',
-            'isSendRequest' => false,
+            'isSendRequest' => true,
             'isSearch' => 0,
+            'userPhoto' => '',
+            'companyName' => $user['companyName'] ?? '',
+            'totaldistance' => $totalDist,
             'displayNumberOnSearch' => isset($_POST['displayNumberOnSearch'])
         ];
         
@@ -322,10 +329,29 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
     </div>
   </div>
 
-  <!-- Seats & Price -->
+  <!-- Route Distance Display -->
+  <div class="card p-5 mb-4 hidden" id="route-info-card">
+    <div class="flex items-center gap-4 flex-wrap">
+      <div class="flex items-center gap-2 bg-green-50 px-4 py-2.5 rounded-xl">
+        <i class="fa-solid fa-road text-brand-green"></i>
+        <span class="text-sm font-black text-brand-green" id="route-dist">-- km</span>
+      </div>
+      <div class="flex items-center gap-2 bg-blue-50 px-4 py-2.5 rounded-xl">
+        <i class="fa-solid fa-clock text-brand-blue"></i>
+        <span class="text-sm font-black text-brand-blue" id="route-dur">-- min</span>
+      </div>
+      <div class="flex items-center gap-2 bg-emerald-50 px-4 py-2.5 rounded-xl">
+        <i class="fa-solid fa-leaf text-emerald-600"></i>
+        <span class="text-sm font-black text-emerald-600" id="route-co2">-- kg CO₂</span>
+      </div>
+    </div>
+    <input type="hidden" name="totaldistance" id="f-totaldist" value="0">
+  </div>
+
+  <!-- Seats, Price & Fuel -->
   <div class="card p-6 mb-4">
-    <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-5">💺 Seats & Price</p>
-    <div class="space-y-4">
+    <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-5">💺 Seats & Pricing</p>
+    <div class="space-y-5">
         <div class="field-wrap">
           <label>Seats Available/Needed</label>
           <div class="flex gap-2">
@@ -335,12 +361,45 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
           </div>
           <input type="hidden" name="seats" id="f-seats" value="1">
         </div>
-        
-        <div class="field-wrap">
-          <label>Price (₹)</label>
-          <div class="relative">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-brand-green text-lg">₹</span>
-            <input name="price" type="number" class="field" style="padding-left:36px" placeholder="0" required value="<?= $mode==='bike'?80:150 ?>">
+
+        <!-- Fuel Type -->
+        <div class="field-wrap" id="fuel-type-wrap">
+          <label>Fuel Type</label>
+          <div class="flex gap-2 flex-wrap">
+            <button type="button" class="pill-btn active" onclick="setFuel('Petrol',this)">⛽ Petrol</button>
+            <button type="button" class="pill-btn" onclick="setFuel('Diesel',this)">🛢️ Diesel</button>
+            <button type="button" class="pill-btn" onclick="setFuel('CNG',this)">💨 CNG</button>
+            <button type="button" class="pill-btn" onclick="setFuel('Electric',this)">🔋 EV</button>
+          </div>
+          <input type="hidden" name="fuelType" id="f-fuelType" value="Petrol">
+        </div>
+
+        <!-- Volunteer Toggle -->
+        <div class="flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed transition-all" id="volunteer-wrap" style="border-color:#fde68a;background:#fffbeb;">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="volunteer" id="f-volunteer" class="sr-only peer" onchange="toggleVolunteer()">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-orange"></div>
+          </label>
+          <div>
+            <p class="font-black text-sm text-amber-700">🤝 Volunteer for Cause</p>
+            <p class="text-xs text-amber-600/70 font-semibold">Offer free ride — help build a greener India!</p>
+          </div>
+        </div>
+
+        <!-- Dynamic Price -->
+        <div class="field-wrap" id="price-wrap">
+          <label>Price per Seat (₹)</label>
+          <div class="flex items-center gap-3">
+            <button type="button" onclick="adjustPrice(-5)" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 font-black text-lg flex items-center justify-center hover:bg-red-100 transition">−</button>
+            <div class="flex-1 relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-brand-green text-lg">₹</span>
+              <input name="price" id="f-price" type="number" class="field text-center text-xl font-black" style="padding-left:36px" placeholder="0" min="0" value="50">
+            </div>
+            <button type="button" onclick="adjustPrice(5)" class="w-10 h-10 rounded-xl bg-green-50 text-brand-green font-black text-lg flex items-center justify-center hover:bg-green-100 transition">+</button>
+          </div>
+          <div class="mt-2 text-xs font-bold text-gray-400 flex justify-between" id="price-hint">
+            <span>Suggested: <span class="text-brand-green" id="suggested-price">₹50</span></span>
+            <span>Range: <span id="price-range">₹25 – ₹100</span></span>
           </div>
         </div>
     </div>
@@ -379,11 +438,15 @@ body{background:#f1f5f9;font-family:'Plus Jakarta Sans',sans-serif;}
 
 <script src="js/places-ac.js"></script>
 <script>
+let _suggestedPrice = 50, _minPrice = 25, _maxPrice = 100, _distKm = 0;
+
 function setUType(val, el) {
     document.getElementById('f-userType').value = val;
     el.parentElement.querySelectorAll('.pill-btn').forEach(b=>b.classList.remove('active'));
     el.classList.add('active');
-    document.getElementById('car-details').style.display = val==='Seeker' ? 'none' : 'block';
+    const isSeeker = val==='Seeker';
+    document.getElementById('car-details').style.display = isSeeker ? 'none' : 'block';
+    document.getElementById('fuel-type-wrap').style.display = isSeeker ? 'none' : 'block';
 }
 
 function setRType(val, el) {
@@ -409,6 +472,79 @@ function setSeats(n, el) {
     el.classList.add('sel');
 }
 
+function setFuel(val, el) {
+    document.getElementById('f-fuelType').value = val;
+    el.parentElement.querySelectorAll('.pill-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+}
+
+function toggleVolunteer() {
+    const checked = document.getElementById('f-volunteer').checked;
+    const priceWrap = document.getElementById('price-wrap');
+    const volWrap = document.getElementById('volunteer-wrap');
+    if (checked) {
+        priceWrap.style.display = 'none';
+        document.getElementById('f-price').value = 0;
+        volWrap.style.borderColor = '#f3821a';
+        volWrap.style.background = '#fff7ed';
+    } else {
+        priceWrap.style.display = 'block';
+        document.getElementById('f-price').value = _suggestedPrice;
+        volWrap.style.borderColor = '#fde68a';
+        volWrap.style.background = '#fffbeb';
+    }
+}
+
+function adjustPrice(delta) {
+    const inp = document.getElementById('f-price');
+    let val = parseInt(inp.value || 0) + delta;
+    if (val < 0) val = 0;
+    inp.value = val;
+}
+
+// Dynamic price from distance (Flutter formula: ₹50 base + ₹3.5/km after 15km)
+function updatePriceFromDistance(km) {
+    _distKm = km;
+    let base = 50;
+    if (km > 15) base += (km - 15) * 3.5;
+    _suggestedPrice = Math.round(base);
+    _minPrice = Math.round(_suggestedPrice * 0.5);
+    _maxPrice = Math.round(_suggestedPrice * 2);
+
+    document.getElementById('suggested-price').textContent = '₹' + _suggestedPrice;
+    document.getElementById('price-range').textContent = '₹' + _minPrice + ' – ₹' + _maxPrice;
+
+    // Only update price if not volunteer and user hasn't manually edited
+    if (!document.getElementById('f-volunteer').checked) {
+        document.getElementById('f-price').value = _suggestedPrice;
+    }
+    document.getElementById('f-totaldist').value = Math.round(km);
+}
+
+// Route distance calculation
+async function calcRoute() {
+    const flat = document.getElementById('f-from-lat')?.value;
+    const flng = document.getElementById('f-from-lng')?.value;
+    const tlat = document.getElementById('f-to-lat')?.value;
+    const tlng = document.getElementById('f-to-lng')?.value;
+    const card = document.getElementById('route-info-card');
+
+    if (!flat || !tlat || !flng || !tlng) {
+        card?.classList.add('hidden');
+        return;
+    }
+    try {
+        const d = await PI_Places.getDistance({lat:+flat,lng:+flng},{lat:+tlat,lng:+tlng});
+        document.getElementById('route-dist').textContent = d.distance_text;
+        document.getElementById('route-dur').textContent = d.duration_text;
+        document.getElementById('route-co2').textContent = (d.distance_km * 0.12).toFixed(1) + ' kg CO₂';
+        card?.classList.remove('hidden');
+        updatePriceFromDistance(d.distance_km);
+    } catch(e) {
+        console.warn('Distance calc error:', e);
+    }
+}
+
 function toggleVia(n) {
     document.getElementById(`via-${n}-wrap`).classList.remove('hidden');
     if(n===1) document.getElementById('add-via-2').classList.remove('hidden');
@@ -425,14 +561,15 @@ function hideVia(n) {
 document.addEventListener('DOMContentLoaded', () => {
     if(typeof PI_Places !== 'undefined') {
         PI_Places.initAll([
-            { inputId: 'f-from', latId: 'f-from-lat', lngId: 'f-from-lng' },
-            { inputId: 'f-to', latId: 'f-to-lat', lngId: 'f-to-lng' },
+            { inputId: 'f-from', latId: 'f-from-lat', lngId: 'f-from-lng', onSelect: () => calcRoute() },
+            { inputId: 'f-to', latId: 'f-to-lat', lngId: 'f-to-lng', onSelect: () => calcRoute() },
             { inputId: 'f-via1', latId: 'f-via1-lat', lngId: 'f-via1-lng' },
             { inputId: 'f-via2', latId: 'f-via2-lat', lngId: 'f-via2-lng' }
         ]);
     }
     document.getElementById('post-form')?.addEventListener('submit', function() {
-        document.getElementById('submit-btn').innerHTML = '<i class="fa-solid fa-circle-notch spin"></i> Submitting...';
+        document.getElementById('submit-btn').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Posting...';
+        document.getElementById('submit-btn').disabled = true;
     });
 });
 </script>
