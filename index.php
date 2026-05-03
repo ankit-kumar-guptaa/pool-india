@@ -337,80 +337,79 @@ $userName = h(currentUser()['name'] ?? ''); ?>
                         </div>
 
                         <!-- Form Area -->
-                        <form id="search-form" onsubmit="handleSearch(event)" class="space-y-3 relative" autocomplete="off">
-
-                            <!-- Vertical route line -->
-                            <div class="absolute left-[19px] top-[52px] h-[54px] w-0.5 z-0 hidden sm:block" style="background:linear-gradient(#1b8036,#f3821a)"></div>
+                        <form id="search-form" onsubmit="handleSearch(event)" class="relative bg-white rounded-[1.5rem] md:rounded-[2rem] border border-gray-100 shadow-[0_4px_30px_rgba(0,0,0,0.03)] p-4 md:p-5" autocomplete="off">
+                            
+                            <!-- Connecting Line for From/To -->
+                            <div class="absolute left-[35px] md:left-[41px] top-[45px] bottom-[160px] md:bottom-[160px] w-[2px] bg-gray-200 z-0"></div>
 
                             <!-- FROM -->
-                            <div class="relative z-10 flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-brand-green" style="background:#dcfce7;">
-                                    <i class="fa-solid fa-circle-dot text-xs"></i>
+                            <div class="relative z-10 flex items-center mb-3">
+                                <div class="w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center shrink-0 bg-white border-2 border-gray-100 text-brand-green shadow-sm relative z-10">
+                                    <i class="fa-solid fa-circle-dot text-[14px]"></i>
                                 </div>
-                                <div class="flex-1 relative bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-brand-green/40 focus-within:border-brand-green transition-all">
-                                    <label class="block text-[10px] uppercase font-black text-gray-400 tracking-wider mb-0.5">Leaving From</label>
-                                    <input id="hero-from" type="text" name="from" placeholder="Type a city, area, landmark..."
-                                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-brand-blue font-bold text-[15px] outline-none"
+                                <div class="flex-1 ml-3 relative bg-gray-50 hover:bg-gray-100/80 rounded-2xl px-4 py-3 border border-transparent focus-within:bg-white focus-within:border-brand-green/30 focus-within:shadow-[0_4px_15px_rgba(27,128,54,0.08)] transition-all cursor-text" onclick="document.getElementById('hero-from').focus()">
+                                    <label class="block text-[10px] uppercase font-extrabold text-gray-400 tracking-wider mb-0.5">Leaving From</label>
+                                    <input id="hero-from" type="text" name="from" placeholder="Current Location"
+                                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-brand-blue font-black text-[15px] md:text-[17px] outline-none placeholder-gray-300 truncate"
                                         required autocomplete="off">
                                     <input type="hidden" id="hero-from-lat" name="from_lat">
                                     <input type="hidden" id="hero-from-lng" name="from_lng">
-                                    <!-- Clear btn -->
-                                    <button type="button" id="clr-from" onclick="clearField('hero-from','hero-from-lat','hero-from-lng','clr-from')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-red-400 transition hidden text-xs"><i class="fa-solid fa-xmark"></i></button>
-                                </div>
-                            </div>
-
-                            <!-- SWAP BUTTON -->
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 flex justify-center">
-                                    <button type="button" onclick="swapLocations()" id="swap-btn"
-                                        class="w-7 h-7 rounded-full border-2 border-gray-200 bg-white hover:border-brand-blue hover:bg-brand-blue hover:text-white text-gray-400 flex items-center justify-center transition-all text-xs shadow-sm">
-                                        <i class="fa-solid fa-arrow-up-arrow-down"></i>
-                                    </button>
-                                </div>
-                                <!-- Distance pill (shown after both selected) -->
-                                <div id="dist-pill" class="hidden flex-1 text-center">
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black" style="background:#f0fdf4;color:#1b8036;border:1px solid #bbf7d0">
-                                        <i class="fa-solid fa-road text-[10px]"></i>
-                                        <span id="dist-text">—</span>
-                                        <span class="text-gray-400 font-semibold" id="dur-text"></span>
-                                    </span>
+                                    <button type="button" id="clr-from" onclick="clearField('hero-from','hero-from-lat','hero-from-lng','clr-from')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-red-400 hidden"><i class="fa-solid fa-circle-xmark text-lg"></i></button>
                                 </div>
                             </div>
 
                             <!-- TO -->
-                            <div class="relative z-10 flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-brand-orange" style="background:#fff7ed;">
-                                    <i class="fa-solid fa-location-dot text-sm"></i>
+                            <div class="relative z-10 flex items-center mb-4">
+                                <div class="w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center shrink-0 bg-brand-blue border-2 border-white text-white shadow-sm relative z-10">
+                                    <i class="fa-solid fa-location-dot text-[14px]"></i>
                                 </div>
-                                <div class="flex-1 relative bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-brand-orange/40 focus-within:border-brand-orange transition-all">
-                                    <label class="block text-[10px] uppercase font-black text-gray-400 tracking-wider mb-0.5">Going To</label>
-                                    <input id="hero-to" type="text" name="to" placeholder="Destination, office, station..."
-                                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-brand-blue font-bold text-[15px] outline-none"
+                                <div class="flex-1 ml-3 relative bg-gray-50 hover:bg-gray-100/80 rounded-2xl px-4 py-3 border border-transparent focus-within:bg-white focus-within:border-brand-blue/30 focus-within:shadow-[0_4px_15px_rgba(29,58,112,0.08)] transition-all cursor-text" onclick="document.getElementById('hero-to').focus()">
+                                    <label class="block text-[10px] uppercase font-extrabold text-gray-400 tracking-wider mb-0.5">Going To</label>
+                                    <input id="hero-to" type="text" name="to" placeholder="Search Destination"
+                                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-brand-blue font-black text-[15px] md:text-[17px] outline-none placeholder-gray-300 truncate"
                                         required autocomplete="off">
                                     <input type="hidden" id="hero-to-lat" name="to_lat">
                                     <input type="hidden" id="hero-to-lng" name="to_lng">
-                                    <button type="button" id="clr-to" onclick="clearField('hero-to','hero-to-lat','hero-to-lng','clr-to')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-red-400 transition hidden text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                    <button type="button" id="clr-to" onclick="clearField('hero-to','hero-to-lat','hero-to-lng','clr-to')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-red-400 hidden"><i class="fa-solid fa-circle-xmark text-lg"></i></button>
                                 </div>
+                                
+                                <!-- SWAP BUTTON -->
+                                <button type="button" onclick="swapLocations()" id="swap-btn"
+                                    class="absolute right-2 md:right-4 -top-[26px] md:-top-[28px] w-9 h-9 md:w-10 md:h-10 rounded-full bg-white border border-gray-100 shadow-[0_4px_10px_rgba(0,0,0,0.08)] text-gray-400 hover:text-brand-blue transition-all flex items-center justify-center z-20 group">
+                                    <i class="fa-solid fa-arrow-down-up-across-line group-hover:rotate-180 transition-transform duration-300 text-[13px] md:text-[14px]"></i>
+                                </button>
                             </div>
 
-                            <!-- Date + Seats row -->
-                            <div class="flex gap-3 relative z-10 pl-11">
-                                <div class="flex-1 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-brand-blue/40 focus-within:border-brand-blue transition-all flex items-center gap-2">
-                                    <i class="fa-regular fa-calendar text-gray-400 text-sm"></i>
+                            <!-- Distance Pill -->
+                            <div id="dist-pill" class="hidden items-center gap-2 mb-4 pl-[52px] md:pl-[56px]">
+                                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black bg-green-50 text-green-700 border border-green-100">
+                                    <i class="fa-solid fa-route opacity-70"></i>
+                                    <span id="dist-text">—</span>
+                                    <span class="text-green-600/60 font-bold px-1">•</span>
+                                    <span class="text-gray-500 font-semibold" id="dur-text"></span>
+                                </span>
+                            </div>
+
+                            <!-- Date + Seats -->
+                            <div class="flex gap-3 mb-4 pl-[52px] md:pl-[56px] relative z-10">
+                                <div class="flex-1 bg-gray-50 hover:bg-gray-100/80 rounded-2xl px-4 py-2.5 border border-transparent focus-within:bg-white focus-within:border-brand-blue/20 transition-all cursor-text flex flex-col justify-center" onclick="document.getElementById('hero-date').showPicker()">
+                                    <label class="block text-[10px] uppercase font-extrabold text-gray-400 tracking-wider mb-0.5"><i class="fa-regular fa-calendar mr-1"></i> Date</label>
                                     <input type="date" name="date" id="hero-date" min="<?= date('Y-m-d') ?>"
-                                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-brand-blue font-bold text-sm outline-none cursor-pointer"
-                                        required>
+                                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-brand-blue font-bold text-[14px] md:text-[15px] outline-none cursor-pointer" required>
                                 </div>
-                                <div class="w-24 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus-within:ring-2 focus-within:ring-brand-blue/40 focus-within:border-brand-blue transition-all flex items-center gap-2" id="passenger-count">
-                                    <i class="fa-regular fa-user text-gray-400 text-sm"></i>
-                                    <input type="number" min="1" max="4" value="1" name="seats"
-                                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-brand-blue font-bold text-sm outline-none text-center" required>
+                                <div class="w-24 shrink-0 bg-gray-50 hover:bg-gray-100/80 rounded-2xl px-3 py-2.5 border border-transparent focus-within:bg-white focus-within:border-brand-blue/20 transition-all flex flex-col justify-center items-center cursor-text" onclick="document.getElementById('hero-seats').focus()">
+                                    <label class="block text-[10px] uppercase font-extrabold text-gray-400 tracking-wider mb-0.5"><i class="fa-solid fa-user-group mr-1"></i> Seats</label>
+                                    <input type="number" min="1" max="4" value="1" name="seats" id="hero-seats"
+                                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-brand-blue font-black text-[15px] md:text-[17px] outline-none text-center" required>
                                 </div>
                             </div>
 
+                            <!-- Search Button -->
                             <button type="submit" id="search-btn"
-                                class="w-full mt-1 bg-brand-green text-white font-black text-base py-4 rounded-xl hover:bg-green-700 transition-all shadow-glow-green flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-magnifying-glass"></i> Search Rides <i class="fa-solid fa-arrow-right"></i>
+                                class="w-full bg-brand-green text-white font-black text-base md:text-lg py-4 rounded-2xl hover:bg-green-700 transition-all shadow-[0_8px_20px_rgba(27,128,54,0.25)] hover:shadow-[0_12px_25px_rgba(27,128,54,0.35)] hover:-translate-y-0.5 flex items-center justify-center gap-3 relative overflow-hidden group">
+                                <span class="relative z-10">Find Your Ride</span>
+                                <i class="fa-solid fa-arrow-right relative z-10 group-hover:translate-x-1 transition-transform"></i>
+                                <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-green-800 opacity-0 group-hover:opacity-100 transition-opacity z-0"></div>
                             </button>
                         </form>
                     </div>
@@ -925,7 +924,7 @@ $userName = h(currentUser()['name'] ?? ''); ?>
         const heroSlides = [
             { line1: 'Your Commute,', line2: 'Your Choice.', sub: 'Search daily rides, intercity cabs or shuttles. Verified peers, cheaper fares.' },
             { line1: 'Save Money,', line2: 'Save the Planet.', sub: 'Split fuel costs with verified co-passengers. Cut your carbon footprint every day.' },
-            { line1: 'For a', line2: 'Viksit Bharat 🇮🇳', sub: 'Pool India is a movement — decongesting cities, cutting emissions, building a smarter India.' },
+            { line1: 'For a', line2: 'Viksit Bharat', sub: 'Pool India is a movement — decongesting cities, cutting emissions, building a smarter India.' },
             { line1: 'Safe Rides,', line2: 'Verified Peers.', sub: 'Aadhaar & DL verified profiles. 100% identity-checked community.' },
         ];
         let heroIdx = 0;

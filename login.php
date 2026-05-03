@@ -36,15 +36,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         && !empty($resp['data']['dataset']['table'])
     ) {
         $user = json_decode($resp['data']['dataset']['table1'][0]['userdetails'], true)[0] ?? [];
+        
+        // Fetch full profile immediately to populate image and details in session for header.php
+        $fullProfile = ProfileService::getUserProfile($phone);
+        if (is_array($fullProfile) && !empty($fullProfile)) {
+            $user = array_merge($user, $fullProfile);
+        }
+
         $_SESSION['user'] = $user;
         unset($_SESSION['otp_secret'], $_SESSION['otp_phone']);
         jsonResponse(['ok' => true, 'name' => $user['name'] ?? 'User', 'redirect' => urldecode($_POST['redirect'] ?? 'rides.php')]);
     }
 
-    // OTP matched but no record — still allow (first time)
-    $_SESSION['user'] = ['name' => 'User', 'mobile_No' => $phone];
+    // OTP matched but no record / verifyUserPhone failed — still allow (first time or fallback)
+    $user = ['name' => 'User', 'mobile_No' => $phone];
+    $fullProfile = ProfileService::getUserProfile($phone);
+    if (is_array($fullProfile) && !empty($fullProfile)) {
+        $user = array_merge($user, $fullProfile);
+    }
+    $_SESSION['user'] = $user;
     unset($_SESSION['otp_secret'], $_SESSION['otp_phone']);
-    jsonResponse(['ok' => true, 'name' => 'User', 'redirect' => 'rides.php']);
+    jsonResponse(['ok' => true, 'name' => $user['name'] ?? 'User', 'redirect' => urldecode($_POST['redirect'] ?? 'rides.php')]);
 }
 
 // ── LOGOUT ───────────────────────────────────────────────────────────────────

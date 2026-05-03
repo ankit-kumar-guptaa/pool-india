@@ -3,7 +3,7 @@ require_once __DIR__ . '/config.php';
 requireLogin();
 
 $sessionUser = currentUser();
-$userId = $sessionUser['id'] ?? 0;
+$userId = $sessionUser['userId'] ?? $sessionUser['id'] ?? 0;
 $phone = $sessionUser['mobile_No'] ?? '';
 
 // Handle AJAX Requests for OTPs
@@ -188,8 +188,11 @@ $userProfile = [];
 if (!empty($profileResp) && (isset($profileResp['name']) || isset($profileResp['phoneNumber']) || isset($profileResp['mobileNumber']))) {
     $userProfile = $profileResp;
     $_SESSION['user'] = array_merge($sessionUser, $userProfile);
+    // Update userId from the freshly fetched profile so subsequent API calls use the correct ID on first load
+    $userId = $userProfile['userId'] ?? $userProfile['id'] ?? $userId;
 } else {
     $userProfile = $sessionUser;
+    $userId = $userProfile['userId'] ?? $userProfile['id'] ?? $userId;
 }
 
 $name = h($userProfile['name'] ?? 'User');
